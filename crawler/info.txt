@@ -1,0 +1,6 @@
+userid
+
+42 is private
+7 is author
+11 cannot be found and brings us to the homepage
+15 cannot be found and brings us to the author page
