@@ -51,6 +51,7 @@ def get_basic_info(userid):
 
 
     except:
+        print("Cannot process this user?")
         return [("Cannot process user", userid, "na")]
 
 

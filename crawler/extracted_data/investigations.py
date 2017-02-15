@@ -31,7 +31,7 @@ def to_dataframe(data):
 
     data = {"Title": titles, "Rating": ratings, "Goodreads ID": goodreadsids, "User Id": userids}
     dframe = pandas.DataFrame(data)
-    print_full(dframe)
+    print(dframe)
 
 
 to_dataframe(data)
