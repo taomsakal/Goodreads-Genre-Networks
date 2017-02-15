@@ -35,9 +35,16 @@ def list_books(user_id, print_status=True):
         print("Begin extraction for user {}".format(user_id))
 
     # Get info from correct page
+    if print_status:
+        print("Connecting...")
+
     url = 'https://www.goodreads.com/review/list/{}?shelf=read'.format(user_id)
     # We should be able to append ?per_page=100 to the end of this,
     # but even if we do it gives back only 30 books. This does not happen in chrome.
+
+    if print_status:
+        print("Connected!".format(user_id))
+        print("Parsing Page...")
 
     soup = extract_books(url, return_soup=True)  # Get the entire page
 
@@ -60,12 +67,10 @@ def list_books(user_id, print_status=True):
         for i in range(0, pages_to_parse):
 
             if print_status:
-                print("Extracting books for user {}. Page {}/{}".format(user_id, i+1, pages_to_parse))
+                print("Extracting books for user {}. Page {}/{}".format(user_id, i + 1, pages_to_parse))
 
-            url = 'https://www.goodreads.com/review/list/{}?page={}&shelf=read'.format(user_id, i+1)
+            url = 'https://www.goodreads.com/review/list/{}?page={}&shelf=read'.format(user_id, i + 1)
             books += extract_books(url)
-
-
 
         return books, num_books
 
@@ -95,6 +100,7 @@ def extract_books(url, return_soup=False):
     else:
         return soup
 
+
 def page_exists(html):
     """
     Tells if the page exists.
@@ -112,8 +118,6 @@ def page_exists(html):
         return True
 
 
-
-
 def extract_num_books(html):
     """
     Extracts the number of books in the shelf and if the profile is private.
@@ -128,14 +132,12 @@ def extract_num_books(html):
         num = re.findall(r'of (.*?)\)', text)  # extract the number
         num = int(num[0].replace(",", ""))
         private = False
-    except: # if private
+    except:  # if private
         num = re.findall(r'\((.*?) books\)', text)  # extract the number
         num = int(num[0].replace(",", ""))
         private = True
 
-
     return num, private
-
 
 
 def extract_link(htmlbook):

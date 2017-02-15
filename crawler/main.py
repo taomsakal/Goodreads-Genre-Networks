@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup, SoupStrainer
 import urllib
 import pandas as pd
 import random
+import crawler.userlist as userlist
+import pickle
 
 
 def print_full(x):
@@ -10,25 +12,26 @@ def print_full(x):
     print(x)
     pd.reset_option('display.max_rows')
 
-#books = parser.list_books(2419628)
-
 
 def get_basic_info(userid):
     """
     Gets the book titles, ids and ratings for a user.
     :param userid: The id of the user.
-    :return: A set of tuples (title, id, rating)
+    :return: A list of tuples (title, id, rating)
     """
 
     try:
         books, num_books = parser.list_books(userid)
 
         if books == "Page does not exist":
-            return "Page does not exist", userid, "na"
+            print("User does not exist.")
+            return [("Page does not exist", userid, "na")]
         if books == "Profile is private":
-            return "Profile is private", userid, "na"
+            print("Profile is private.")
+            return [("Profile is private", userid, "na")]
         if books == "Empty User":
-            return "Empty User", userid, "na"
+            print("User has no books. What a loser.")
+            return [("Empty User", userid, "na")]
 
         titles = []
         ids = []
@@ -48,14 +51,44 @@ def get_basic_info(userid):
 
 
     except:
-        return ("Cannot process user", userid, "na")
+        return [("Cannot process user", userid, "na")]
 
 
-l = list(range(0, 55000))
+def crawl_and_save(userlist_name):
+    """
+    Crawls forever, and saves the data to the extracted data folder.
+    We can stop it and it will start where it left off.
+    (Though it will skip the user we were just on because it will think
+    we got their data. Our data set is big enough that this should not
+    be a real issue.)
+    :param userlist_name:
+    :return: "Finished" if finished.
+    """
 
-random.shuffle(l)
+    # Load data. If no file exists then start with empty list.
+    try:
+        data = pickle.load(open("extracted_data/" + userlist_name + "_data", "rb"))
+    except:
+        data = []
 
-for i in l:
-    print(get_basic_info(i))
+    userid = None
+
+    while userid != "Finished":
+        userid = userlist.next_user(userlist_name)
+        info = get_basic_info(userid)
+
+        data.append((userid, info))
+
+        print("Saving data...")
+
+        pickle.dump(data, open("extracted_data/" + userlist_name + "_data", "wb+"))
+
+        print("Data Saved. \n")
+
+    # If we somehow finish.
+    pickle.dump(data, "extracted_data/" + userlist_name + "_data_finished")
+    print("Extraction finished!?")
+    return "Finished"
 
 
+crawl_and_save("userlist_0")
