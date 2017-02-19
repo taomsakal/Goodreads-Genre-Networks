@@ -5,6 +5,9 @@ data = pickle.load(open("userlist_0_data", "rb"))
 
 
 def print_full(x):
+    """
+    Prints the full dataframe.
+    """
     pandas.set_option('display.max_rows', len(x))
     print(x)
     pandas.reset_option('display.max_rows')
@@ -31,7 +34,8 @@ def to_dataframe(data):
 
     data = {"Title": titles, "Rating": ratings, "Goodreads ID": goodreadsids, "User Id": userids}
     dframe = pandas.DataFrame(data)
-    print(dframe)
+
+    return dframe
 
 
 to_dataframe(data)

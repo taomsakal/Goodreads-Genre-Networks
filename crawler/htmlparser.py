@@ -86,7 +86,7 @@ def extract_books(url, return_soup=False):
     :return: resultset of books
     """
 
-    while True:
+    while True:  # Never give up. Stay determined.
         try:
             html = urllib.request.urlopen(url).read()
             soup = BeautifulSoup(html, 'lxml')
@@ -140,6 +140,22 @@ def extract_num_books(html):
     return num, private
 
 
+def extract_username(html):
+    """
+    Extracts username of a user
+    :param html: html soup of bookshelf
+    :return: The number of books
+    """
+
+    text = html.find('title').text
+
+    try:
+        username = re.findall(r'| (.*?)\)\'s bookshelf', text)
+    except:
+        username = "Cannot extract username"
+
+    return username
+
 def extract_link(htmlbook):
     """
     Extract part of a link to the book.
@@ -192,42 +208,104 @@ def extract_user_rating(htmlbook):
     else:
         return 0
 
-#
-# b = books[0].find_all("td", class_="field read_count")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field date_added")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field date_purchased")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field owned")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field purchase_location")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field condition")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find("td", class_="field format")
-#
-# print(b.text)
 
-#
+def extract_read_count(htmlbook):
+    rawtext = htmlbook.find("td", class_="field read_count")
+    num = rawtext.splitlines()[1]
+
+    return num
+
+
+def extract_date_added(htmlbook):
+    rawtext = htmlbook.find("td", class_="field date_added")
+    date = rawtext.splitlines()[1]
+
+    return date
+
+
+def extract_date_purchased(htmlbook):
+    rawtext = htmlbook.find("td", class_="field date_purchased")
+    date = rawtext.splitlines()[1]
+
+    return date
+
+
+def extract_owned(htmlbook):
+    """
+    Extracts... something to do about if the user owns the book.
+    :param htmlbook:
+    :return:
+    """
+    rawtext = htmlbook.find("td", class_="field owned")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_purchase_location(htmlbook):
+    rawtext = htmlbook.find("td", class_="field purchase_location")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_book_condition(htmlbook):
+    rawtext = htmlbook.find("td", class_="field condition")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_book_format(htmlbook):
+    rawtext = htmlbook.find("td", class_="field format")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_review(htmlbook):
+    rawtext = htmlbook.find("td", class_="field review")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_recommender(htmlbook):
+    rawtext = htmlbook.find("td", class_="field recommender")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_notes(htmlbook):
+    rawtext = htmlbook.find("td", class_="field notes")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_comments(htmlbook):
+    rawtext = htmlbook.find("td", class_="field comments")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_votes(htmlbook):
+    rawtext = htmlbook.find("td", class_="field votes")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+
+def extract_date_pub_edition(htmlbook):
+    rawtext = htmlbook.find("td", class_="field date_pub_edition")
+    data = rawtext.splitlines()[1]
+
+    return data
+
+# All the data below we can extract from the goodreads book object
+
 # def extract_author(htmlbook):
 #     """
 #     Gets the author of a book.
@@ -306,34 +384,5 @@ def extract_user_rating(htmlbook):
 #
 # print("----------")
 #
-# b = books[0].find_all("td", class_="field date_pub_edition")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field review")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field recommender")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field notes")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field comments")
-# print(b)
-#
-# print("----------")
-#
-# b = books[0].find_all("td", class_="field votes")
-# print(b)
-#
-# print("----------")
-#
+
 #

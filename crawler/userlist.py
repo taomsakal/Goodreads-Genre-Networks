@@ -3,20 +3,24 @@ import pickle
 
 import math
 
+GOODREADS_SIZE = 64962100  # Number of users in goodreads
 
-class UserList:
+
+def make_userlist_database(name, size, num_chunks):
     """
-    A list of users in a random order
+    Makes a userlist database which we can iterate through to get users. The counters
+    remember our place in the list.
+    WARNING: This will reset current userlists and counters by the same name.
+    :param name: Name of files
+    :param num_chunks: Number of files to split this into.
+    :return: None
     """
 
-    def __init__(self, file_name, size):
-        self.file_name = file_name
-        self.size = size
-
-        self.current_position = None
+    make_and_save_list(num_chunks, size, name)
+    reset_counters(name, num_chunks)
 
 
-def make_and_save_list(num_chunks, name):
+def make_and_save_list(num_chunks, size, name):
     """
     Makes and saves a list of all the user ids on goodreads in a random order.
     It the splits into n chunks, allowing us to run different lists on different
@@ -27,7 +31,7 @@ def make_and_save_list(num_chunks, name):
     :return: None
     """
 
-    size = 64962100  # This is about the number of users on Goodreads
+    size = size  # This is about the number of users on Goodreads
     userlist = list(range(1, size))
     random.shuffle(userlist)
 
@@ -35,6 +39,20 @@ def make_and_save_list(num_chunks, name):
 
     for i in list(range(0, len(userlists))):
         pickle.dump(userlists[i], open(name + "_{}".format(i), "wb+"))  # Save the list with teh number as a suffix
+
+
+def reset_counters(name, n):
+    """
+    Reset the first n counters of name.
+    :param name: The file name (without suffix)
+    :param n: the number of counters to reset
+    :return: None
+    """
+
+    for i in list(range(0, n)):
+        pickle.dump(int(0), open(name + "_{}_counter".format(i), "wb+"))
+
+
 
 
 def chunkify(list_, n):
@@ -54,7 +72,7 @@ def chunkify(list_, n):
     return out
 
 
-def load_file(name):
+def load_file(name, path="userlist_db/"):
     """
     Loads the file.
     Path automatically appended to be userlist_db
@@ -62,10 +80,10 @@ def load_file(name):
     :return:
     """
 
-    return pickle.load(open("userlist_db/" + name, 'rb'))
+    return pickle.load(open(path + name, 'rb'))
 
 
-def next_user(filename):
+def next_user(filename, path="userlist_db/"):
     """
     Gets the next user from the user file.
     Then increments the counter.
@@ -73,14 +91,15 @@ def next_user(filename):
     :return: A user id
     """
 
-    l = load_file(filename)
-    counter = load_file(filename + "_counter")
+    l = load_file(filename, path=path)
+    counter = load_file(filename + "_counter", path=path)
 
     print("Getting next user. (We are at position {} in {}.)".format(counter, filename))
 
-    pickle.dump(counter + 1, open("userlist_db/" + filename + "_counter", "wb+"))
+    pickle.dump(counter + 1, open(path + filename + "_counter", "wb+"))
 
     try:
         return l[counter]
     except:
         return "Finished"
+

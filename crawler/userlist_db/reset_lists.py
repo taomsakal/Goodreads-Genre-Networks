@@ -1,8 +1,10 @@
 """
-Running this makes/resets the lists. Be careful not to overwrite the existing lists.
-This will also take a while beacuse it works with ~65mil users.
+This will create the userlist database where it is run.
+WARNING: Will overwrite old databases and counters
 """
 
 import crawler.userlist as ul
 
-ul.make_and_save_list(10, "userlist")
+print("Creating userlist database... (This may take a few minutes)")
+ul.make_userlist_database("userlist", ul.GOODREADS_SIZE, 15)
+print("Finished!")

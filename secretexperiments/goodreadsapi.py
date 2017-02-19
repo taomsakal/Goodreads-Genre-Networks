@@ -9,7 +9,7 @@ SECRET = 'x5gbome6DgF2fZfiVHuQrfxndTzFQ4cMBM9EdufS1A'
 
 goodreads = client.GoodreadsClient(KEY, SECRET)
 
-user = goodreads.user(64962100)
+user = goodreads.user(64962200)
 print(user.name)
 
 # https://www.goodreads.com/review/list/2?per_page=100

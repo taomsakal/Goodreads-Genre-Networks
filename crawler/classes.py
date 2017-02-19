@@ -5,10 +5,24 @@ class UserBook:
     """
 
     def __init__(self):
+        self.book = None  # The book object
+        self.goodreads_id = "No gid"
 
-        self.goodreads_id = 'no id'
-        self.user_rating = 'no rating'
-        self.owner = 'no owner'
+        self.rating = "No rating"
+        self.readcount = 0
+
+        self.date_added = "No added date"
+        self.date_purchased = "No purchase date"
+        self.owned = "No owned info"
+        self.purchase_location = None
+        self.condition = None
+        self.format = None
+        self.review = None
+        self.recomender = None
+        self.notes = None
+        self.comments = None
+        self.votes = None
+        self.date_pub_edition = None
 
 class User:
     """
@@ -17,5 +31,8 @@ class User:
     """
 
     def __init__(self):
+        self.id = 0
+        self.name = ""
+        self.number_books = 0
 
-        self.books = {}
+        self.userbooks = []  # List of userbook objects

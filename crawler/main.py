@@ -7,7 +7,8 @@ import crawler.userlist as userlist
 import pickle
 
 
-def print_full(x):
+def print_full_dataframe(x):
+    """Prints a full dataframe"""
     pd.set_option('display.max_rows', len(x))
     print(x)
     pd.reset_option('display.max_rows')
@@ -44,7 +45,7 @@ def get_basic_info(userid):
 
         data = {"Title": titles, "Rating": ratings, "Goodreads ID": ids}
         dframe = pd.DataFrame(data)
-        print_full(dframe)
+        print_full_dataframe(dframe)
 
         data = list(zip(titles, ids, ratings))
         return data
@@ -55,14 +56,14 @@ def get_basic_info(userid):
         return [("Cannot process user", userid, "na")]
 
 
-def crawl_and_save(userlist_name):
+def crawl_and_save(userlist_name, userlistpath="userlist_db/"):
     """
     Crawls forever, and saves the data to the extracted data folder.
     We can stop it and it will start where it left off.
     (Though it will skip the user we were just on because it will think
     we got their data. Our data set is big enough that this should not
     be a real issue.)
-    :param userlist_name:
+    :param userlist_name: Name of userlist file to crawl
     :return: "Finished" if finished.
     """
 
@@ -75,7 +76,7 @@ def crawl_and_save(userlist_name):
     userid = None
 
     while userid != "Finished":
-        userid = userlist.next_user(userlist_name)
+        userid = userlist.next_user(userlist_name, path=userlistpath)
         info = get_basic_info(userid)
 
         data.append((userid, info))
@@ -87,9 +88,10 @@ def crawl_and_save(userlist_name):
         print("Data Saved. \n")
 
     # If we somehow finish.
-    pickle.dump(data, "extracted_data/" + userlist_name + "_data_finished")
+    pickle.dump(data, open("extracted_data/" + userlist_name + "_data_finished", "wb"))
     print("Extraction finished!?")
     return "Finished"
 
 
-crawl_and_save("userlist_0")
+if __name__ == "__main__":
+    crawl_and_save("userlist_2")
