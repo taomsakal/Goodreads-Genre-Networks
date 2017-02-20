@@ -5,6 +5,7 @@ import pandas as pd
 import random
 import crawler.userlist as userlist
 import pickle
+from crawler.user import User, UserBook
 
 
 def print_full_dataframe(x):
@@ -14,47 +15,44 @@ def print_full_dataframe(x):
     pd.reset_option('display.max_rows')
 
 
-def get_basic_info(userid):
+def make_user(userid):
     """
-    Gets the book titles, ids and ratings for a user.
+    Make a user object, which holds information about the user along with all
+    the books the user has. The books are stored as userbook objects
     :param userid: The id of the user.
-    :return: A list of tuples (title, id, rating)
+    :return: a user object
     """
 
-    try:
-        books, num_books = parser.list_books(userid)
+    books, num_books = parser.list_books(userid)  # Get information
 
-        if books == "Page does not exist":
-            print("User does not exist.")
-            return [("Page does not exist", userid, "na")]
-        if books == "Profile is private":
-            print("Profile is private.")
-            return [("Profile is private", userid, "na")]
-        if books == "Empty User":
-            print("User has no books. What a loser.")
-            return [("Empty User", userid, "na")]
+    # Make user object and save information
+    user = User()
+    user.number_books = num_books
+    user.profile_type = "normal"
 
-        titles = []
-        ids = []
-        ratings = []
+    # Special user types
+    if books == "Page does not exist":
+        print("User does not exist.")
+        user.profile_type = "does not exist"
+        return user
+    if books == "Profile is private":
+        print("Profile is private.")
+        user.profile_type = "private"
+        return user
 
-        for book in books:
-            titles.append(parser.extract_title(book))
-            ratings.append(parser.extract_user_rating(book))
-            ids.append(parser.extract_goodreads_id(book))
+    # Display if user has no books
+    if books == "Empty User":
+        print("User has no books. What a loser.")
 
-        data = {"Title": titles, "Rating": ratings, "Goodreads ID": ids}
-        dframe = pd.DataFrame(data)
-        print_full_dataframe(dframe)
+    for book in books:
+        userbook = user.make_userbook(book)
+        user.userbooks.append(userbook)
 
-        data = list(zip(titles, ids, ratings))
-        return data
+    return user
 
-
-    except:
-        print("Cannot process this user?")
-        return [("Cannot process user", userid, "na")]
-
+    # except:
+    #     print("Cannot process this user?")
+    #     return [("Cannot process user", userid, "na")]
 
 def crawl_and_save(userlist_name, userlistpath="userlist_db/"):
     """
@@ -77,7 +75,7 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/"):
 
     while userid != "Finished":
         userid = userlist.next_user(userlist_name, path=userlistpath)
-        info = get_basic_info(userid)
+        info = make_user(userid)
 
         data.append((userid, info))
 

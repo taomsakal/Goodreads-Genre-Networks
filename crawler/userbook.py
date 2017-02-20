@@ -23,16 +23,4 @@ class UserBook:
         self.comments = None
         self.votes = None
         self.date_pub_edition = None
-
-class User:
-    """
-    Contains information about the user and
-    all the userbooks they have.
-    """
-
-    def __init__(self):
-        self.id = 0
-        self.name = ""
-        self.number_books = 0
-
-        self.userbooks = []  # List of userbook objects
+        self.link = None
