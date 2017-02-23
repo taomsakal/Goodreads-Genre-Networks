@@ -20,7 +20,7 @@ def make_test_userlists(userlist):
 # 15 cannot be found and brings us to the author page
 # 42 is private
 # 60 cannot be found and brings us to the homepage
-# 2419628 Rachel (aka The Champion)
+# 2419628 Rachel (ex-champion)
 # 10815061 Taom
 # 54471292 Angela
 # 29320549 - says no book but has two???
@@ -31,6 +31,7 @@ def make_test_userlists(userlist):
 # 61021479 - strange num books
 # 62149778 - different page not found
 # 765173 - defeated Rachel in page number but disqualified because two people.
+# 8987103 - defeated Rachel by ~30 books. (THE NEW CHAMPION)
 
 userids = [11, 42, 7, 19218152, 64405638, 61021479, 15, 62149778, 2419628, 10815061, 54471292, 29320549, 6693775,
            3146916]
