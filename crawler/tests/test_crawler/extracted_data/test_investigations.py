@@ -1,7 +1,14 @@
+"""
+To look at extracted data
+"""
+
 import pickle
+
 import pandas
 
-data = pickle.load(open("test_userlist_data", "rb"))
+from crawler.general import read, overwrite
+
+data = read("test_userlist_data")
 
 
 def print_full(x):
@@ -38,4 +45,4 @@ def to_dataframe(data):
     return dframe
 
 
-print(to_dataframe(data))
+print(data)

@@ -1,9 +1,135 @@
-from goodreads import client
-from bs4 import BeautifulSoup
-import urllib
-import time
-import re
+"""
+Here live all the functions that deal with getting the html of a page and parsing the information.
+We import this module as parser.
+"""
+
 import math
+import re
+import urllib
+
+from bs4 import BeautifulSoup
+
+from crawler.general import print_
+
+
+def get_soup(user_id, print_status=True):
+    """
+    Gets the html of page 1 of a user's read-bookshelf.
+    :todo: We should be able to append ?per_page=100 to the end of url, but does not work.
+    :param user_id: Id of user
+    :return: beautifulsoup soup object
+    """
+
+    print_("Downloading Page...")
+
+    while True:  # Determination
+        try:
+
+            # Get info from correct page
+            url = 'https://www.goodreads.com/review/list/{}?shelf=read'.format(user_id)
+            html = urllib.request.urlopen(url).read()
+            soup = BeautifulSoup(html, 'lxml')
+
+            return soup
+
+        except:
+            print_("Could not connect. Retrying...")
+
+
+def extract_user_type(soup):
+    """
+    Extract the type of user.
+    :param soup:
+    :return: "normal", "private", "restricted" or "empty".
+    """
+
+    if not page_exists(soup):
+        print_("User does not exist.")
+        return "does not exist."
+    elif is_restricted(soup):
+        print_("User is restricted.")
+        return "restricted"
+    elif is_private(soup):
+        print_("User is private.")
+        return "private"
+    elif extract_num_books(soup) < 1:
+        print_("User is empty.")
+        return "empty"
+    else:
+        print_("User is normal")
+        return "normal"
+
+
+def page_exists(soup):
+    """
+    Tells if the page exists.
+    :param soup: soup of page
+    :return: bool
+    """
+
+    # If the user does not exist we go to the home, which has specific title text.
+    text = soup.title.text
+    if "Share Book Recommendations With Your Friends, Join Book Clubs, Answer Trivia" in text or "Page Not Found" in text:
+        return False
+
+    return True
+
+
+def is_private(soup):
+    """
+    Returns true if the user's profile is private.
+    :param soup: soup object of page
+    :return: bool
+    """
+
+    rawtext = soup.text
+
+    if "This Profile is Private" in rawtext or "private profile" in rawtext:
+        return True
+
+    return False
+
+
+def is_restricted(soup):
+    """
+    Returns if the profile is restricted to goodreads users
+    :param soup: soup object of page
+    :return: bool
+    """
+
+    rawtext = soup.text
+
+    if "This Profile Is Restricted to Goodreads Users" in rawtext:
+        return True
+
+    return False
+
+
+def list_books(soup, userid, print_status=True):
+    """
+    Takes in the user id and finds all that user's books, and the number of them. (W
+    :param print_status: If true, print the status of the crawl
+    :param soup: html of the page
+    :return: list of htmlbooks
+    """
+
+    # figure out how many pages we must parse
+    num_books = extract_num_books(soup)
+    pages_to_parse = math.ceil(num_books / 30)
+
+    # if empty user
+    if num_books < 1:
+        return "Empty User"
+
+    # Parse the pages
+    books = []
+    for i in range(0, pages_to_parse):
+        print_("Extracting books for user {}. Page {}/{}".format(userid, i + 1, pages_to_parse))
+
+        # Extract books from current page
+        books += extract_books(soup, i, userid)
+
+    return books
 
 
 def extract_title(htmlbook):
@@ -22,132 +148,71 @@ def extract_title(htmlbook):
     return text
 
 
-def list_books(user_id, print_status=True):
-    """
-    Takes in the user id and finds all that user's books, and the number of them. (We get this num for later stats.)
-    Can also output error messeges.
-    :param print_status: If true, print the status of the crawl
-    :param user_id: The user id
-    :return: (booklist, book number) or ("Page does not exist", None) or ("Profile is private", book number)
-    """
-
-    if print_status:
-        print("Begin extraction for user {}".format(user_id))
-
-    # Get info from correct page
-    if print_status:
-        print("Connecting...")
-
-    url = 'https://www.goodreads.com/review/list/{}?shelf=read'.format(user_id)
-    # We should be able to append ?per_page=100 to the end of this,
-    # but even if we do it gives back only 30 books. This does not happen in chrome.
-
-    if print_status:
-        print("Connected!".format(user_id))
-        print("Parsing Page...")
-
-    soup = extract_books(url, return_soup=True)  # Get the entire page
-
-    if not page_exists(soup):
-        return "Page does not exist", None
-
-    # figure out how many pages we must parse
-    num_books, private = extract_num_books(soup)
-    pages_to_parse = math.ceil(num_books / 30)
-
-    # if empty user
-    if num_books < 1:
-        return "Empty User", num_books
-
-    # If profile is not private, then crawl it.
-    if not private:
-        books = soup.find_all("tr", class_="bookalike review")  # Gives list of books with info
-
-        # Parse the remaining pages
-        for i in range(0, pages_to_parse):
-
-            if print_status:
-                print("Extracting books for user {}. Page {}/{}".format(user_id, i + 1, pages_to_parse))
-
-            url = 'https://www.goodreads.com/review/list/{}?page={}&shelf=read'.format(user_id, i + 1)
-            books += extract_books(url)
-
-        return books, num_books
-
-    return "Profile is private", num_books
-
-
-def extract_books(url, return_soup=False):
+def extract_books(soup, page_number, userid):
     """
     Gets the of the books in each page.
     Can also just return the source code of the page instead.
     :param return_soup: If true, return page code instead of list of books code
-    :param url: url of page
+    :param soup: soup of the page
     :return: resultset of books
     """
 
+    # If we are on the first page, we already have the soup information. No need to extract again.
+    if page_number == 1:
+        books = soup.find_all("tr", class_="bookalike review")
+        return books
+
+    # Get books from aditional pages
     while True:  # Never give up. Stay determined.
         try:
+
+            url = 'https://www.goodreads.com/review/list/{}?page={}&shelf=read'.format(userid, page_number + 1)
             html = urllib.request.urlopen(url).read()
             soup = BeautifulSoup(html, 'lxml')
+
             books = soup.find_all("tr", class_="bookalike review")
             break
-        except TimeoutError:
-            pass
 
-    if not return_soup:
-        return books
-    else:
-        return soup
+        except:  # Happens if there are connection problems
+
+            print_("Cannot connect. Retrying...")
+
+    return books
 
 
-def page_exists(html):
+def extract_num_books(soup):
     """
-    Tells if the page exists.
-    :param html: html of page
-    :return: bool
-    """
-
-    # If the user does not exist we go to the home page or the author page.
-    # We can look at the title to learn if we went to one.
-
-    text = html.find('title').text
-    if "Goodreads | Recent Updates" in text or "Goodreads Authors" in text:
-        return False
-    else:
-        return True
-
-
-def extract_num_books(html):
-    """
-    Extracts the number of books in the shelf and if the profile is private.
-    This tells us how many pages we must crawl to see all books.
-    :param html: html soup of all bookshelf
-    :return: The number of books
+    Extracts the number of books in the shelf.
+    :param soup: html soup of all bookshelf
+    :return: The number of books, or None if failed
     """
 
-    text = html.find('title').text
+    text = soup.find('title').text
+    if "of 0" in text:
+        return 0
 
+    # There are at least two ways to display the number of books in the page.
     try:
-        num = re.findall(r'of (.*?)\)', text)  # extract the number
-        num = int(num[0].replace(",", ""))
-        private = False
-    except:  # if private
-        num = re.findall(r'\((.*?) books\)', text)  # extract the number
-        num = int(num[0].replace(",", ""))
-        private = True
+        try:
+            num = re.findall(r'of (.*?)\)', text)  # extract the number
+            num = int(num[0].replace(",", ""))
+        except:
+            num = re.findall(r'\((.*?) books\)', text)  # extract the number
+            num = int(num[0].replace(",", ""))
+    except:
+        raise Exception("Cannot extract number of books")
 
-    return num, private
+    return num
 
 
-def extract_username(html):
+def extract_username(soup):
     """
     Extracts username of a user
-    :param html: html soup of bookshelf
+    :param soup: html soup of bookshelf
     :return: The number of books
     """
 
-    text = html.find('title').text
+    text = soup.find('title').text
 
     try:
         username = re.findall(r'| (.*?)\)\'s bookshelf', text)
@@ -210,101 +275,186 @@ def extract_user_rating(htmlbook):
 
 
 def extract_read_count(htmlbook):
-    rawtext = htmlbook.find("td", class_="field read_count")
-    num = rawtext.splitlines()[1]
+    """
+    Extract the number of times the book has been read.
+    :param htmlbook: html for the book
+    :return: number of times book has been read
+    """
+    rawtext = htmlbook.find("td", class_="field read_count").text
 
-    return num
+    # Process the text into an integer
+    text = rawtext.replace("# times read", "")
+    text = text.strip()
+
+    try:
+        return int(text.replace(",", ""))
+    except:  # May have a read count such as "2+"
+        return text
 
 
 def extract_date_added(htmlbook):
-    rawtext = htmlbook.find("td", class_="field date_added")
-    date = rawtext.splitlines()[1]
+    rawtext = htmlbook.find("td", class_="field date_added").text
 
-    return date
+    # Process the text into an integer
+    text = rawtext.replace("date added", "")
+    text = text.strip()
+
+    return text
 
 
 def extract_date_purchased(htmlbook):
-    rawtext = htmlbook.find("td", class_="field date_purchased")
-    date = rawtext.splitlines()[1]
+    rawtext = htmlbook.find("td", class_="field date_purchased").text
 
-    return date
+    # Process the text into an integer
+    text = rawtext.replace("date purchased", "")
+    text = text.strip()
+
+    return text
 
 
 def extract_owned(htmlbook):
-    """
-    Extracts... something to do about if the user owns the book.
-    :param htmlbook:
-    :return:
-    """
-    rawtext = htmlbook.find("td", class_="field owned")
-    data = rawtext.splitlines()[1]
+    rawtext = htmlbook.find("td", class_="field owned").text
 
-    return data
+    # Process the text into an integer
+    text = rawtext.replace("owned", "")
+    text = text.strip()
+
+    if text != "":
+        print(rawtext)
+        print(text)
+
+    return text
 
 
 def extract_purchase_location(htmlbook):
-    rawtext = htmlbook.find("td", class_="field purchase_location")
-    data = rawtext.splitlines()[1]
+    rawtext = htmlbook.find("td", class_="field purchase_location").text
 
-    return data
+    text = rawtext.replace("purchase location", "")
+    text = text.strip()
+
+    if text != "":
+        print(rawtext)
+        print(text)
+
+    return text
 
 
 def extract_book_condition(htmlbook):
-    rawtext = htmlbook.find("td", class_="field condition")
-    data = rawtext.splitlines()[1]
+    rawtext = htmlbook.find("td", class_="field condition").text
 
-    return data
+    text = rawtext.replace("condition", "")
+    text = text.strip()
+
+    if text != "":
+        print(rawtext)
+        print(text)
+
+    return text
 
 
 def extract_book_format(htmlbook):
-    rawtext = htmlbook.find("td", class_="field format")
-    data = rawtext.splitlines()[1]
+    """
+    Extract the books format
+    :param htmlbook: html of the book
+    :return: name of the format
+    """
+    rawtext = htmlbook.find("td", class_="field format").text
 
-    return data
+    # Process the text into an integer
+    text = rawtext.replace("format", "")
+    text = text.strip()
+
+    return text
 
 
 def extract_review(htmlbook):
-    rawtext = htmlbook.find("td", class_="field review")
-    data = rawtext.splitlines()[1]
+    """
+    Extracts a snippet if a review for the book
+    :param htmlbook: html of the book
+    :return: review
+    """
+    rawtext = htmlbook.find("td", class_="field review").text
 
-    return data
+    text = rawtext.splitlines()[1:]
+    text = "\n".join(text)
+    text = text.strip()
+
+    return text
 
 
 def extract_recommender(htmlbook):
-    rawtext = htmlbook.find("td", class_="field recommender")
-    data = rawtext.splitlines()[1]
+    """
+    Extract the user that recommended the book?
+    :param htmlbook: html of a book
+    :return: username of recommender
+    """
+    rawtext = htmlbook.find("td", class_="field recommender").text
 
-    return data
+    text = rawtext[11:]  # Cut out first part, w/o risking cutting out a user named "reccommender"
+
+    return text
 
 
 def extract_notes(htmlbook):
-    rawtext = htmlbook.find("td", class_="field notes")
-    data = rawtext.splitlines()[1]
+    """
+    Extracts the notes. These are private so kinda useless?
+    :param htmlbook: html of a book
+    :return: notes, or text saying notes are private
+    """
+    rawtext = htmlbook.find("td", class_="field notes").text
 
-    return data
+    text = rawtext.replace("notes", "")
+    text = text.strip()
+
+    return text
 
 
 def extract_comments(htmlbook):
-    rawtext = htmlbook.find("td", class_="field comments")
-    data = rawtext.splitlines()[1]
+    """
+    Extracts the number of comments.
+    # Todo: figure out what comments are.
+    :param htmlbook: html of a book
+    :return: The number of comments
+    """
+    rawtext = htmlbook.find("td", class_="field comments").text
 
-    return data
+    # Process the text into an integer
+    text = rawtext.replace("comments", "")
+    text = text.strip()
+
+    return int(text.replace(",", ""))
 
 
 def extract_votes(htmlbook):
-    rawtext = htmlbook.find("td", class_="field votes")
-    data = rawtext.splitlines()[1]
+    """
+    Extract the number of votes. (votes on what?)
+    :param htmlbook: html of a book
+    :return: number of votes
+    """
+    rawtext = htmlbook.find("td", class_="field votes").text
 
-    return data
+    # Process the text into an integer
+    text = rawtext.replace("votes", "")
+    text = text.strip()
+
+    return int(text.replace(",", ""))
 
 
 def extract_date_pub_edition(htmlbook):
-    rawtext = htmlbook.find("td", class_="field date_pub_edition")
-    data = rawtext.splitlines()[1]
+    """
+    Extracts the date published
+    :param htmlbook: html of a book
+    :return: a date
+    """
+    rawtext = htmlbook.find("td", class_="field date_pub_edition").text
 
-    return data
+    # Process the text into an integer
+    text = rawtext.replace("date pub edition", "")
+    text = text.strip()
 
-# All the data below we can extract from the goodreads book object
+    return text
+
+# All the data below we can extract from the goodreads book object, so we do not bother with it.
 
 # def extract_author(htmlbook):
 #     """

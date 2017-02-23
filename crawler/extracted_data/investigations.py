@@ -1,16 +1,14 @@
+"Scratch file to look at extracted data"
+
 import pickle
+
 import pandas
+
+from crawler.general import read, overwrite
 
 data = pickle.load(open("userlist_0_data", "rb"))
 
 
-def print_full(x):
-    """
-    Prints the full dataframe.
-    """
-    pandas.set_option('display.max_rows', len(x))
-    print(x)
-    pandas.reset_option('display.max_rows')
 
 
 def to_dataframe(data):
@@ -38,4 +36,4 @@ def to_dataframe(data):
     return dframe
 
 
-to_dataframe(data)
+print(data[3].dataframe)

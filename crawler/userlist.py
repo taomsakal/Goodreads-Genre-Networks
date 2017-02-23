@@ -1,7 +1,7 @@
-import random
 import pickle
+import random
 
-import math
+from crawler.general import read, overwrite
 
 GOODREADS_SIZE = 64962100  # Number of users in goodreads
 
@@ -38,7 +38,7 @@ def make_and_save_list(num_chunks, size, name):
     userlists = chunkify(userlist, num_chunks)
 
     for i in list(range(0, len(userlists))):
-        pickle.dump(userlists[i], open(name + "_{}".format(i), "wb+"))  # Save the list with teh number as a suffix
+        overwrite(userlists[i], name + "_{}".format(i))  # Save the list with teh number as a suffix
 
 
 def reset_counters(name, n):
@@ -50,7 +50,7 @@ def reset_counters(name, n):
     """
 
     for i in list(range(0, n)):
-        pickle.dump(int(0), open(name + "_{}_counter".format(i), "wb+"))
+        overwrite(int(0), name + "_{}_counter".format(i))
 
 
 
@@ -80,7 +80,7 @@ def load_file(name, path="userlist_db/"):
     :return:
     """
 
-    return pickle.load(open(path + name, 'rb'))
+    return read(path + name)
 
 
 def next_user(filename, path="userlist_db/"):
@@ -96,10 +96,9 @@ def next_user(filename, path="userlist_db/"):
 
     print("Getting next user. (We are at position {} in {}.)".format(counter, filename))
 
-    pickle.dump(counter + 1, open(path + filename + "_counter", "wb+"))
+    overwrite(counter + 1, path + filename + "_counter")
 
     try:
         return l[counter]
     except:
-        return "Finished"
-
+        return "finished"
