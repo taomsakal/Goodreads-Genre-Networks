@@ -13,13 +13,12 @@ class User:
 
     def __init__(self):
         self.id = 0
-        self.name = ""
+        self.name = None
         self.profile_type = "no type"  # Can be normal, restricted, private, empty, error or no type
         self.number_books = 0
 
         self.userbooks = []  # List of userbook objects
         self.dataframe = None
-        self.username = "No Username"
 
     def make_userbook(self, htmlbook):
         """
