@@ -2,11 +2,9 @@
 To look at extracted data
 """
 
-import pickle
-
 import pandas
 
-from crawler.general import read, overwrite
+from crawler.general import read
 
 data = read("test_userlist_data")
 
@@ -45,4 +43,4 @@ def to_dataframe(data):
     return dframe
 
 
-print(data)
+print(data[9].dataframe)

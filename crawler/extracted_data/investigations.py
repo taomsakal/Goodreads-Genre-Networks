@@ -4,8 +4,6 @@ import pickle
 
 import pandas
 
-from crawler.general import read, overwrite
-
 data = pickle.load(open("userlist_0_data", "rb"))
 
 
@@ -36,4 +34,4 @@ def to_dataframe(data):
     return dframe
 
 
-print(data[3].dataframe)
+print(data[0].dataframe)

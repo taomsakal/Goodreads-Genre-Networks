@@ -19,6 +19,7 @@ class User:
 
         self.userbooks = []  # List of userbook objects
         self.dataframe = None
+        self.username = "No Username"
 
     def make_userbook(self, htmlbook):
         """

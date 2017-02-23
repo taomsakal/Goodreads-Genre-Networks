@@ -208,6 +208,7 @@ def extract_num_books(soup):
 def extract_username(soup):
     """
     Extracts username of a user
+    This function does not work very well, so do not use.
     :param soup: html soup of bookshelf
     :return: The number of books
     """
@@ -218,6 +219,8 @@ def extract_username(soup):
         username = re.findall(r'| (.*?)\)\'s bookshelf', text)
     except:
         username = "Cannot extract username"
+
+    print_("Username: {}".format(username))
 
     return username
 

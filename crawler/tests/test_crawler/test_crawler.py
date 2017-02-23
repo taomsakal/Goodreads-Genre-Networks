@@ -15,11 +15,11 @@ def make_test_userlists(userlist):
     overwrite(int(0), "test_userlist_counter")
 
 
-# 42 is private
 # 7 is author
 # 11 cannot be found and brings us to the homepage
-# 60 cannot be found and brings us to the homepage
 # 15 cannot be found and brings us to the author page
+# 42 is private
+# 60 cannot be found and brings us to the homepage
 # 2419628 Rachel (aka The Champion)
 # 10815061 Taom
 # 54471292 Angela
@@ -32,8 +32,8 @@ def make_test_userlists(userlist):
 # 62149778 - different page not found
 # 765173 - defeated Rachel in page number but disqualified because two people.
 
-userids = [11, 42, 7, 19218152, 64405638, 61021479, 15, 62149778]  # , 2419628, 10815061, 54471292, 29320549, 6693775,
-# 3146916]
+userids = [11, 42, 7, 19218152, 64405638, 61021479, 15, 62149778, 2419628, 10815061, 54471292, 29320549, 6693775,
+           3146916]
 make_test_userlists(userids)
 
 crawler.crawl_and_save("test_userlist", userlistpath="", load_data=False)
