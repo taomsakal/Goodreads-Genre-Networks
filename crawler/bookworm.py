@@ -11,7 +11,6 @@ whatever data we've currently mined. If we want to restart, we must delete the d
 
 USER_LIST = "userlist_0"
 
-import pickle
 import sys
 
 import crawler.htmlparser as parser
@@ -78,8 +77,9 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
             users = read("extracted_data/" + userlist_name + "_data")
         else:
             users = []
-    except:
+    except FileNotFoundError:  # If no file, create empty new one.
         users = []
+        overwrite(users, "extracted_data/" + userlist_name + "_data")
 
     userid = None
 
@@ -102,10 +102,31 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
         if user.profile_type == "normal":
             print_(user.dataframe.head(n=5))
 
-        # Save the data.
-        print_("Saving data...")
-        overwrite(users, "extracted_data/" + userlist_name + "_data")
-        print_("Saved. \n")
+        # Save the data, but make sure not overwriting with less.
+        if overwrite_safe(userlist_name, users):
+            overwrite(users, "extracted_data/" + userlist_name + "_data")
+            print_("Saved. \n")
+        else:
+            raise Exception(
+                "Overwriting {}_data with less data. Manually delete {}_data if you are sure you want to do this.".format(
+                    userlist_name, userlist_name))
+
+
+def overwrite_safe(userlist_name, users):
+    """
+    Returns True if we will be overwriting our data file with less data.
+    :param users: The new userlist to replace the data with
+    :param userlist_name: Name of userlist
+    :return: bool
+    """
+
+    old_data_size = len(read("extracted_data/" + userlist_name + "_data"))
+    new_data_size = len(users)
+
+    if new_data_size <= old_data_size:
+        return False
+    else:
+        return True
 
 
 def finished(users, userlist_name):
