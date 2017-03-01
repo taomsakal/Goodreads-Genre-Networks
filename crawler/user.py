@@ -1,6 +1,6 @@
 import pandas
 
-from crawler import htmlparser as parser
+import crawler.htmlparser as parser
 from crawler.general import print_
 from crawler.userbook import UserBook
 
