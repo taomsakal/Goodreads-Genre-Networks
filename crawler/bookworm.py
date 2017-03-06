@@ -9,7 +9,7 @@ If we abort, the process should pick up where it left off. Note that it does thi
 whatever data we've currently mined. If we want to restart, we must delete the data file.
 """
 
-USER_LIST = "userlist_0"
+USER_LIST = "userlist_2"
 
 import sys
 
