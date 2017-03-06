@@ -11,6 +11,7 @@ whatever data we've currently mined. If we want to restart, we must delete the d
 
 USER_LIST = "userlist_4"
 
+import os
 import sys
 
 import crawler.htmlparser as parser
@@ -75,19 +76,16 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
     :return: "Finished" if finished.
     """
 
-    # Load data. If no file exists then start with empty list.
-    try:
-        if load_data:
-            users = read("extracted_data/" + userlist_name + "_data")
-        else:
-            users = []
-    except FileNotFoundError:  # If no file, create empty new one.
-        users = []
-        overwrite(users, "extracted_data/" + userlist_name + "_data")
+    users = []
+    directory = "extracted_data/" + userlist_name + "_data/"
+
+    # Make directory if needed
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
     # Make new file for this chunk of data.
     counter = read(userlistpath + userlist_name + "_counter")
-    file = "extracted_data/" + userlist_name + "_data_counter_" + str(counter)
+    file = directory + userlist_name + "_data_counter_" + str(counter)
     overwrite(users, file)
 
     # Main loop
@@ -117,7 +115,7 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
 
         # Save the data, but make sure not overwriting with less.
         print_("Saving data...")
-        if overwrite_safe(userlist_name, users):
+        if overwrite_safe(file, users):
             overwrite(users, file)
             print_("Saved. \n")
         else:
@@ -126,7 +124,7 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
                     userlist_name, userlist_name))
 
 
-def overwrite_safe(userlist_name, users):
+def overwrite_safe(file, users):
     """
     Returns True if we will be overwriting our data file with less data.
     :param users: The new userlist to replace the data with
@@ -134,7 +132,7 @@ def overwrite_safe(userlist_name, users):
     :return: bool
     """
 
-    old_data_size = len(read("extracted_data/" + userlist_name + "_data"))
+    old_data_size = len(read(file))
     new_data_size = len(users)
 
     if new_data_size <= old_data_size:
