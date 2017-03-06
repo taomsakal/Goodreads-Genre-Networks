@@ -132,6 +132,11 @@ def overwrite_safe(file, users):
     :return: bool
     """
 
+    # If file does not exist, is safe
+    if not os.path.exists(file):
+        return True
+
+    # Otherwise, make sure not overwriting with smaller list.
     old_data_size = len(read(file))
     new_data_size = len(users)
 
