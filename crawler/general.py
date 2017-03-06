@@ -48,3 +48,4 @@ def read(filename):
     file.close()
 
     return data
+
