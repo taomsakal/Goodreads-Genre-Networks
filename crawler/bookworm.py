@@ -9,7 +9,7 @@ If we abort, the process should pick up where it left off. Note that it does thi
 whatever data we've currently mined. If we want to restart, we must delete the data file.
 """
 
-USER_LIST = "userlist_0"
+USER_LIST = "userlist_4"
 
 import sys
 
@@ -65,6 +65,10 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
     (Though it will skip the user we were just on because it will think
     we got their data. Our data set is big enough that this should not
     be a real issue.)
+
+    Makes a new file for the data every time we start or for 1000 users
+    so that we don't spend too much time rewriting the same file.
+
     :param load_data: If true, load our previous data. Should disable for testing
     or if re-running a portion of the list.
     :param userlist_name: Name of userlist file to crawl
@@ -81,7 +85,10 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
         users = []
         overwrite(users, "extracted_data/" + userlist_name + "_data")
 
-    userid = None
+    # Make new file for this chunk of data.
+    counter = read(userlistpath + userlist_name + "_counter")
+    file = "extracted_data/" + userlist_name + "_data_counter_" + str(counter)
+    overwrite(users, file)
 
     # Main loop
     while True:
@@ -100,15 +107,22 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
         # Build the dataframe for the user
         user.build_dataframe()
         if user.profile_type == "normal":
-            print_(user.dataframe.head(n=5))
+            print_(user.dataframe.head(n=10))
+
+        # Decide if want new file for data.
+        counter = read(userlistpath + userlist_name + "_counter")
+        if counter % 1000 == 0:
+            file = "extracted_data/" + userlist_name + "_data_counter_" + str(counter)
+
 
         # Save the data, but make sure not overwriting with less.
+        print_("Saving data...")
         if overwrite_safe(userlist_name, users):
-            overwrite(users, "extracted_data/" + userlist_name + "_data")
+            overwrite(users, file)
             print_("Saved. \n")
         else:
             raise Exception(
-                "Overwriting {}_data with less data. Manually delete {}_data if you are sure you want to do this.".format(
+                "Overwriting {}_data with less data.".format(
                     userlist_name, userlist_name))
 
 
