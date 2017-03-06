@@ -1,4 +1,3 @@
-import pickle
 import random
 
 from crawler.general import read, overwrite
