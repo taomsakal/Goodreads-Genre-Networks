@@ -109,8 +109,9 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
 
         # Decide if want new file for data.
         counter = read(userlistpath + userlist_name + "_counter")
-        if counter % 1000 == 0:
-            file = "extracted_data/" + userlist_name + "_data_counter_" + str(counter)
+        if counter % 200 == 0:
+            file = "extracted_data/" + userlist_name + "_data/" + userlist_name + "_data_counter_" + str(counter)
+            users = []
 
 
         # Save the data, but make sure not overwriting with less.
@@ -152,7 +153,6 @@ def finished(users, userlist_name):
     :return:
     """
     # If we somehow finish.
-    overwrite(users, "extracted_data/" + userlist_name + "_data")
     print("Extraction finished! :D")
 
     sys.exit()

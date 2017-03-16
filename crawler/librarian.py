@@ -26,28 +26,30 @@ def gather_books(userlist_name):
     :return: None
     """
     path = None
-
+    i = 0
     while path != "Finished":
-        path = next_chunk(userlist_name)
+        path = get_list(userlist_name, i)
         gather_from_file(path)
-        bookshelf["processed files"][path] += path
+        bookshelf["processed files"][path] = path
+        i += 1
         general.print_("-------------- \nWe have completed {}! \n --------------- ".format(path))
 
     print("Finished gathering from {}".format(userlist_name))
     bookshelf.close()
 
 
-def next_chunk(userlist_name):
+def get_list(userlist_name, i):
     """
     Get the next chunk of the list for the userlist name.
     :param userlist_name: Name of userlist
     :return: path to the chunk
     """
 
-    for filename in os.listdir("extracted_data/{}_data".format(userlist_name)):
-        if filename not in bookshelf["processed files"]:
-            path = "extracted_data/{}_data/{}".format(userlist_name, filename)
-            return path
+    filenames = os.listdir("extracted_data/{}_data".format(userlist_name))
+    filename = filenames[i]
+    if filename not in bookshelf["processed files"]:
+        path = "extracted_data/{}_data/{}".format(userlist_name, filename)
+        return path
 
     return "Finished"
 
