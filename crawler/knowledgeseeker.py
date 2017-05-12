@@ -60,6 +60,7 @@ class KnowledgeSeeker:
         :return: path to the chunk
         """
 
+
         filenames = os.listdir("../data/userlists")
 
         try:
