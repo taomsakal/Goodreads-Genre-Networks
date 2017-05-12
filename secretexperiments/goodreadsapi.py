@@ -9,8 +9,8 @@ SECRET = 'x5gbome6DgF2fZfiVHuQrfxndTzFQ4cMBM9EdufS1A'
 
 goodreads = client.GoodreadsClient(KEY, SECRET)
 
-user = goodreads.user(64962200)
-print(user.name)
+book = goodreads.book(1)
+print(book.similar_books)
 
 # https://www.goodreads.com/review/list/2?per_page=100
 # https://www.goodreads.com/review/list/2?page=2&per_page=100

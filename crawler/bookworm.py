@@ -9,7 +9,9 @@ If we abort, the process should pick up where it left off. Note that it does thi
 whatever data we've currently mined. If we want to restart, we must delete the data file.
 """
 
-USER_LIST = "userlist_4"
+# Todo: Make this save the data to the data directory.
+
+USER_LIST = "userlist_6"
 
 import os
 import sys
@@ -38,6 +40,7 @@ def make_user(userid):
         user = User()
         user.profile_type = parser.extract_user_type(soup)
         user.number_books = parser.extract_num_books(soup)
+        user.id = userid
 
         # Abort if user is private, empty, or non-existent
         if user.profile_type != "normal":
@@ -59,7 +62,7 @@ def make_user(userid):
         return user
 
 
-def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
+def crawl_and_save(userlist_name, userlistpath="../data/userlist_db/", load_data=True):
     """
     Crawls forever, and saves the data to the extracted data folder.
     We can stop it and it will start where it left off.
@@ -85,8 +88,9 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
 
     # Make new file for this chunk of data.
     counter = read(userlistpath + userlist_name + "_counter")
-    file = directory + userlist_name + "_data_counter_" + str(counter)
+    file = directory + userlist_name + "_data_counter_" + str(counter) + ".dat"
     overwrite(users, file)
+
 
     # Main loop
     while True:
@@ -109,8 +113,9 @@ def crawl_and_save(userlist_name, userlistpath="userlist_db/", load_data=True):
 
         # Decide if want new file for data.
         counter = read(userlistpath + userlist_name + "_counter")
-        if counter % 200 == 0:
-            file = "extracted_data/" + userlist_name + "_data/" + userlist_name + "_data_counter_" + str(counter)
+        if counter % 500 == 0:
+            file = "extracted_data/" + userlist_name + "_data/" + userlist_name + "_data_counter_" + str(
+                counter) + ".dat"
             users = []
 
 
