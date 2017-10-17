@@ -1,3 +1,5 @@
+
+
 import networkx as nx
 from networkx.algorithms import bipartite
 import sys
@@ -96,25 +98,30 @@ def min_max_ratio(r1, r2):
 
 
 def main():
-    # path = "../data/userlist_4/"
-    path = "../crawler/extracted_data/test/"
-    # can create bi_partite graphs separately?
+    """
+    This creates a the main book/reader network and saves it as a weighted dict.
+    """
+
+    # Decide what data we process
+    path = "../data/userlists/"
     file_list = os.listdir(path)
-    # file_list = ["../data/userlist_4/userlist_4_data_counter_70500.dat", "../data/userlist_4/userlist_4_data_counter_66200.dat"]
-    # file_list = os.listdir("../data/data_small")
-    # u_list = []
+    file_list = file_list[0:4]  # Change this to change amount of data.
+
+
     weights_dict = {}
+    i = 0
     for file_name in file_list:
-        # u_list.extend(read("../" + file_name))
-        # u_list = read("../data/userlist_4/" + file_name)
-        # u_list = read(file_name)
         u_list = read(path + file_name)
         u_list_books = [u for u in u_list if len(u.userbooks) > 0]
         bi_graph = create_bipartite_graph(u_list_books)
         user_dict = make_user_book_dict(u_list_books)
         users, books = bipartite.sets(bi_graph)
         weights_dict = find_weights_co_rating(weights_dict, bi_graph, user_dict, users)
+        #Print progress
+        i += 1
+        print("Progress: {}/{}".format(i, len(file_list)))
     with open('weights_dict_co_rating.pickle', 'wb') as f:
+        print("Saving weights_dict...")
         pickle.dump(weights_dict, f, protocol=2)
 
 
