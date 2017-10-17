@@ -1,18 +1,14 @@
-
-
+import shelve
 import networkx as nx
 from networkx.algorithms import bipartite
 import sys
-
-sys.path.append('../')
 from crawler.general import *
-# import community.community_louvain as community
 import pickle
 import os
+import community
+from collections import Counter
+sys.path.append('../')
 
-
-# u_list = read("../crawler/extracted_data/test_data")
-# u_list_books = [u for u in u_list if len(u.userbooks) > 0]
 
 def make_user_book_dict(user_list):
     """ Assigns a user ID corresponding to index in user_list to a user's list of book objects. """
@@ -86,18 +82,11 @@ def find_weights_co_rating(book_pair_weights, b_graph, user_dict, users):
     return book_pair_weights
 
 
-# def project_graph(b_graph, book_weights_dict):
-# 	proj_graph = nx.Graph()
-# 	for pair in book_weights_dict:
-# 		proj_graph.add_edge(*pair, weight = sum(book_weights_dict[pair])/len(book_weights_dict[pair]))
-# 	return proj_graph
-
-
 def min_max_ratio(r1, r2):
     return min(r1, r2) / max(r1, r2)
 
 
-def main():
+def create_and_save_bipartite():
     """
     This creates a the main book/reader network and saves it as a weighted dict.
     """
@@ -105,8 +94,7 @@ def main():
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[0:4]  # Change this to change amount of data.
-
+    file_list = file_list[3:15]   # Change this to change amount of data.
 
     weights_dict = {}
     i = 0
@@ -117,23 +105,111 @@ def main():
         user_dict = make_user_book_dict(u_list_books)
         users, books = bipartite.sets(bi_graph)
         weights_dict = find_weights_co_rating(weights_dict, bi_graph, user_dict, users)
-        #Print progress
+        # Print progress
         i += 1
         print("Progress: {}/{}".format(i, len(file_list)))
     with open('weights_dict_co_rating.pickle', 'wb') as f:
         print("Saving weights_dict...")
         pickle.dump(weights_dict, f, protocol=2)
 
+# --------------------------------------
+
+def project_graph(book_weights_dict):
+    """
+    Create the projected graph, with weights.
+    :param book_weights_dict: the weights dictionary
+    :return:
+    """
+    max_ = len(book_weights_dict)
+    i = 0
+    proj_graph = nx.Graph()
+    for pair in book_weights_dict:
+        print("Projecting Graph {}/{}".format(i, max_))
+        i += 1
+        proj_graph.add_edge(*pair, weight=book_weights_dict[pair])
+
+    overwrite(proj_graph, "projection_graph.pickle")
+
+    return proj_graph
+
+
+def invert_dictionary(clusterDict):
+    """Given a dictionary mapping sentences to cluster number, returns
+    a dictionary mapping cluster number to a list of book titles in the cluster."""
+    invertDict = {}
+    for v in clusterDict.values():
+        invertDict[v] = []
+    for book in clusterDict:
+        invertDict[clusterDict[book]].append(book)
+    return invertDict
+
+
+def make_partitions():
+    """
+    Find the communities in the network
+    :return:
+    """
+    print("Opening the weights dictionary")
+    with open('weights_dict_co_rating.pickle', 'rb') as f:
+        weights_dict = pickle.load(f)
+
+    # Filter out weak links
+    print("Filtering Links...")
+    weights_dict = {pair: weights_dict[pair] for pair in weights_dict if weights_dict[pair] > 5}
+
+    print("Projecting Graph")
+    proj_graph = project_graph(weights_dict)
+
+    print("Finding best partition...")
+    partition = community.best_partition(proj_graph)
+
+    print("Inverting dictionary")
+    clusters = invert_dictionary(partition)
+
+    # print("Filtering Clusters")
+    # clusters_filter = {c: clusters[c] for c in clusters if len(clusters[c]) > 100}
+
+    with open('partition.pickle', 'wb') as f:
+        pickle.dump(partition, f, protocol=2)
+    with open('clusters.pickle', 'wb') as f:
+        pickle.dump(clusters, f, protocol=2)
+
+# --------------------------------
+
+def find_genre_distribution():
+    sys.path.append("../")
+
+    # Open the data
+    s = shelve.open('../data/book_db/amazon_bookshelf.db')
+    with open('clusters.pickle', 'rb') as f:
+        clusters = pickle.load(f)
+
+    genre_clusters = {c: [] for c in clusters}
+    for c in clusters:
+        book_list = clusters[c]
+        for book_info in book_list:
+            goodreads_id = book_info.split("__")[1]  # string
+            if goodreads_id in s and s[goodreads_id] != "Skipped":
+                genre_clusters[c].extend(s[goodreads_id].genres)
+
+    genre_distribution = {c: Counter(genre_clusters[c]) for c in genre_clusters}
+
+    with open('genre_distribution.pickle', 'wb') as f:
+        pickle.dump(genre_distribution, f, protocol=2)
+
+
+def make_graphs():
+    """
+    This is the main function. It makes and saves the bipartite graph, the partitions, and the genre distribution.
+    :return: none
+    """
+
+    create_and_save_bipartite()
+    make_partitions()
+    find_genre_distribution()
+
+# ===================================================
 
 if __name__ == "__main__":
-    main()
 
-# bi_graph = create_bipartite_graph(u_list_books)
-# user_dict = make_user_book_dict(u_list_books)
-# weights_dict = find_weights(bi_graph, user_dict, "co_rating_len")
-# # proj_graph = project_graph(bi_graph, weights_dict)
-# with open('weights_dict.pickle', 'wb') as f:
-#     pickle.dump(weights_dict, f, protocol=2)
-
-# nx.edges(bi_graph, title)
-# users, books = bipartite.sets(bi_graph)
+    make_graphs()

@@ -1,9 +1,10 @@
 from crawler.general import print_
 import shelve
-from amazon.api import AmazonAPI
+from amazon.api import AmazonAPI  #pip install python-amazon-simple-product-api
 from crawler.api_data import aws
 from crawler.amazonbook import AmazonBook
 from goodreads.book import GoodreadsBook
+
 
 
 class AmazonSeeker:

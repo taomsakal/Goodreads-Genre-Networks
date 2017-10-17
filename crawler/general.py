@@ -7,6 +7,17 @@ import pickle
 import pandas
 
 
+"""
+The code below prevents a unpickling error
+"""
+import sys
+import pandas.core.indexes
+sys.modules['pandas.indexes'] = pandas.core.indexes
+import pandas.core.base, pandas.core.indexes.frozen
+setattr(sys.modules['pandas.core.base'],'FrozenNDArray', pandas.core.indexes.frozen.FrozenNDArray)
+
+
+
 def print_(string, print_status=True):
     """
     Print the string if get_status is true

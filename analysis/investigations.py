@@ -3,6 +3,10 @@
 import os
 from crawler.general import read, overwrite
 import shelve
+import pickle
+
+
+
 
 #amazon_books = shelve.open("../data/book_db/amazon_bookshelf.db", flag='r')
 #
@@ -17,4 +21,4 @@ for filename in os.listdir("../data/userlists"):
         if user.profile_type == "normal":
             for book in user.userbooks:
                 print(book.rating)
-                print(goodreads_books[str(book.goodreads_id).title()])
+                print(book.title)
