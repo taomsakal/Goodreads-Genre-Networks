@@ -94,7 +94,7 @@ def create_and_save_bipartite():
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[3:15]   # Change this to change amount of data.
+    file_list = file_list[4:60]   # Change this to change amount of data.
 
     weights_dict = {}
     i = 0
@@ -160,19 +160,19 @@ def make_partitions():
     print("Projecting Graph")
     proj_graph = project_graph(weights_dict)
 
-    print("Finding best partition...")
-    partition = community.best_partition(proj_graph)
+    print("Generating Partition Dendogram")
+    partition_dendogram = community.generate_dendrogram(proj_graph)
 
-    print("Inverting dictionary")
-    clusters = invert_dictionary(partition)
+    # print("Inverting dictionary")
+    # clusters = invert_dictionary(partition_dendogram)
 
     # print("Filtering Clusters")
     # clusters_filter = {c: clusters[c] for c in clusters if len(clusters[c]) > 100}
 
-    with open('partition.pickle', 'wb') as f:
-        pickle.dump(partition, f, protocol=2)
-    with open('clusters.pickle', 'wb') as f:
-        pickle.dump(clusters, f, protocol=2)
+    with open('partition_dendogram.pickle', 'wb') as f:
+        pickle.dump(partition_dendogram, f, protocol=2)
+    # with open('clusters.pickle', 'wb') as f:
+    #     pickle.dump(clusters, f, protocol=2)
 
 # --------------------------------
 
@@ -206,7 +206,7 @@ def make_graphs():
 
     create_and_save_bipartite()
     make_partitions()
-    find_genre_distribution()
+    # find_genre_distribution()
 
 # ===================================================
 
