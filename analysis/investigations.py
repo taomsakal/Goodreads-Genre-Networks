@@ -15,10 +15,12 @@ import pickle
 # for key, value in amazon_books.items():
 #     print(value.languages)
 goodreads_books = shelve.open("../data/book_db/goodreads_bookshelf.db", flag='r')
-for filename in os.listdir("../data/userlists"):
-    userlist = read("../data/userlists/" + filename)
-    for user in userlist:
-        if user.profile_type == "normal":
-            for book in user.userbooks:
-                print(book.rating)
-                print(book.title)
+amazon_books = shelve.open("../data/book_db/amazon_bookshelf.db", flag='r')
+print(type(goodreads_books.values()))
+print(type(amazon_books.values()))
+print(goodreads_books["1"].gid)
+print(amazon_books["1"].genres)
+# for key, value in amazon_books.items():
+#     print(key, value)
+#     print(type(value))
+#     print(dir(value))
