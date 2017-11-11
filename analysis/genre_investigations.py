@@ -63,7 +63,22 @@ if __name__ == "__main__":
 
 
 
-
+# # reviews=str(abook.reviews),
+# # nodes=abook.browse_nodes,
+# asin=abook.asin,
+# languages=str(abook.languages),
+# authors=gbook.authors,
+# average_rating=gbook.average_rating,
+# description=gbook.description,
+# format=gbook.format,
+# is_ebook=gbook.is_ebook,
+# language_code=gbook.language_code,
+# num_pages=gbook.num_pages,
+# series_works=gbook.series_works,
+# ratings_count=gbook.ratings_count,
+# rating_dist=gbook.rating_dist,
+# publication_date=gbook.publication_date,
+# popular_shelves=gbook.popular_shelves,
 
 
 

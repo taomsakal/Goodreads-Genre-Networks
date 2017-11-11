@@ -16,10 +16,10 @@ import pickle
 #     print(value.languages)
 goodreads_books = shelve.open("../data/book_db/goodreads_bookshelf.db", flag='r')
 amazon_books = shelve.open("../data/book_db/amazon_bookshelf.db", flag='r')
-print(type(goodreads_books.values()))
-print(type(amazon_books.values()))
-print(goodreads_books["1"].gid)
-print(amazon_books["1"].genres)
+for book in goodreads_books.items():
+    print(book[1])
+    print(type(book[1]))
+
 # for key, value in amazon_books.items():
 #     print(key, value)
 #     print(type(value))

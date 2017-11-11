@@ -7,11 +7,15 @@ import pickle
 import os
 import community
 from collections import Counter
+from networkx.algorithms import bipartite
+
 sys.path.append('../')
 
 
 def make_user_book_dict(user_list):
-    """ Assigns a user ID corresponding to index in user_list to a user's list of book objects. """
+    """
+    Assigns a user ID corresponding to index in user_list to a user's list of book objects.
+    """
     return {i: user_list[i] for i in range(len(user_list))}
 
 
@@ -20,6 +24,8 @@ def create_bipartite_graph(user_list, book_dict, amazon_book_dict):
     this function will construct a bipartite graph of users and books. """
 
     b_graph = nx.DiGraph()
+    # for key, value in book_dict.items():
+    #     print(key, value, type(value))
 
     # Make the Nodes and edges
     max_ = len(user_list)
@@ -31,37 +37,42 @@ def create_bipartite_graph(user_list, book_dict, amazon_book_dict):
             b_graph.add_node("user_{}".format(i), bipartite=0)
             for book in user.userbooks:
                 try:
-                    # print("Added {}".format(book.title))
-                    b_graph.add_node("book_{}".format(book.goodreads_id),
-                                     title=book.title,
-                                     authors=book.authors,
-                                     average_rating=book.average_rating,
-                                     description=book.description,
-                                     format=book.format,
-                                     is_ebook=book.is_ebook,
-                                     language_code=book.language_code,
-                                     num_pages=book.num_pages,
-                                     series_works=book.series_works,
-                                     ratings_count=book.ratings_count,
-                                     rating_dist=book.rating_dist,
-                                     publication_date=book.publication_date,
-                                     #popular_shelves=book.popular_shelves,
-                                     genres=amazon_book_dict[str(book.goodreads_id)].genres,
-                                     bipartite=1)  # Books are 1 in the bipartite graph
+                    if book.goodreads_id != "No gid":
+                        # b_graph.add_node("buser_{}".format(i), bipartite=1)
+                        # print(book_dict[book.goodreads_id])
+                        #abook = amazon_book_dict[str(book.goodreads_id)]
+                        # gbook = book_dict[str(book.goodreads_id)][1]
+                        b_graph.add_node(book.goodreads_id,
+                                         bipartite=1,
+                                         gid=book.goodreads_id,
+                                         title=book.title,
+                                         #sales_rank=int(abook.sales_rank),
+                                         #genres=str(abook.genres),
+                                         weight=book.rating,
+                                         rating=book.rating,
+                                         readcount=book.readcount
+
+                                         )
+                        print("Added {}".format(book.title))
+
                 except:
                     pass
-                    # print("Skipped {}.".format(book.title))
+                # print("Skipped {}.".format(book.title))
 
                 # Add the edges
-                b_graph.add_edge("user_{}".format(i), "book_{}".format(book.goodreads_id))
+                b_graph.add_edge(i, "book_{}".format(book.goodreads_id))
+
         i += 1
         print("Building Bipartite Graph: {}/{}".format(i, max_))
 
     print("Saving Bipartite Graph as bipartite_reader_network.gexf...")
-    nx.write_gml(b_graph, "bipartite_reader_network.gml")  # Todo make this save to a nodes.csv and a edges.csv
+    nx.write_gexf(b_graph, "bipartite_reader_network.gexf")  # Todo make this save to a nodes.csv and a edges.csv
     print("Save Successful!")
 
+    print(b_graph.nodes(data=True))
+
     return b_graph
+
 
 # this function is not used??!?
 def find_weights(book_pair_weights, b_graph, user_dict, users, edge_scheme):
@@ -100,21 +111,39 @@ def find_weights(book_pair_weights, b_graph, user_dict, users, edge_scheme):
     return book_pair_weights
 
 
-def find_weights_co_rating(book_pair_weights, b_graph, user_dict, users):
+def make_proj_graph_weights(book_pair_weights, b_graph, user_dict, users):
+    """
+    This makes a dictionary of edges and weights for the projection graph.
+    :param book_pair_weights:
+    :param b_graph:
+    :param user_dict:
+    :param users:
+    :return:
+    """
+
+
     for user in users:
-        book_list = [b for b in user_dict[user].userbooks]
+        book_list = [b for b in user_dict["{}".format(user)].userbooks]
+
+        # Connect all books shared by the same user in the proj graph
         for i in range(len(book_list)):
             for j in range(i, len(book_list)):
                 book1 = book_list[i]
                 book2 = book_list[j]
-                if book1.goodreads_id > book2.goodreads_id:
+                if book1.goodreads_id > book2.goodreads_id:  # Make a canonical order so won't appear twice in dict
                     book1, book2 = book2, book1
+
                 # Append the goodreads id to the book titles so that node names are unqiue
-                pair = (str(book1.title + "__" + str(book1.goodreads_id)), str(book2.title + "__" + str(book2.goodreads_id)))
+                pair = (
+                    str(book1.title + "__" + str(book1.goodreads_id)),
+                    str(book2.title + "__" + str(book2.goodreads_id)))
+
+                # Update the weights in the projection graph
                 if pair in book_pair_weights:
                     book_pair_weights[pair] += 1
                 else:
                     book_pair_weights[pair] = 1
+
     return book_pair_weights
 
 
@@ -136,7 +165,9 @@ def create_and_save_bipartite():
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[4:10]   # Change this to change amount of data.
+    file_list = file_list[10:30]  # Change this to change amount of data.
+
+
 
     weights_dict = {}
     i = 0
@@ -146,7 +177,7 @@ def create_and_save_bipartite():
         bi_graph = create_bipartite_graph(u_list_books, goodreads_book_dict, amazon_book_dict)
         user_dict = make_user_book_dict(u_list_books)
         users, books = bipartite.sets(bi_graph)
-        weights_dict = find_weights_co_rating(weights_dict, bi_graph, user_dict, users)
+        weights_dict = make_proj_graph_weights(weights_dict, bi_graph, user_dict, users)
         # Print progress
         i += 1
         print("Progress: {}/{}".format(i, len(file_list)))
@@ -154,28 +185,42 @@ def create_and_save_bipartite():
         print("Saving weights_dict...")
         pickle.dump(weights_dict, f, protocol=2)
 
+
 # --------------------------------------
 
-def project_graph(book_weights_dict):
+def project_graph(G, method="Count"):
     """
     Create the projected graph, with weights.
+    :param G: A bipartite graph G to be projected.
     :param book_weights_dict: the weights dictionary, which is of the form {(title1_gid, title2_gid) : weight, ...}
-    :return:
+    :param method: This tells us how to weight the edges. "Rating count" sums all the ratings for a weight.
+    "Average" takes the average. "Count" just counts the number of times the edge is shared (co-read).
+    :return: A nx graph.
     """
-    max_ = len(book_weights_dict)
-    i = 0
-    proj_graph = nx.Graph()
+    # max_ = len(book_weights_dict)
+    # i = 0
+    # proj_graph = nx.Graph()
+    #
+    # # Add Edges
+    # for pair in book_weights_dict:
+    #     print("Projecting Graph {}/{}".format(i, max_))
+    #     i += 1
+    #     proj_graph.add_edge(*pair, weight=book_weights_dict[pair])
+    #
+    # # proj_graph = remake_projection_graph(proj_graph, book_weights_dict)
 
-    # Add Edges
-    for pair in book_weights_dict:
-        print("Projecting Graph {}/{}".format(i, max_))
-        i += 1
-        proj_graph.add_edge(*pair, weight=book_weights_dict[pair])
+    assert bipartite.is_bipartite(G)
 
+    # Seperate the top (top) and bottom (book) nodes. The bottom nodes are the ones we project onto.
+    top_nodes = {n for n, d in G.nodes(data=True) if d['bipartite'] == 0}
+    bottom_nodes = set(G) - top_nodes
 
-    # proj_graph = remake_projection_graph(proj_graph, book_weights_dict)
+    if method == "Count":
+        proj_graph = bipartite.weighted_projected_graph(G, bottom_nodes)
+    else:
+        raise Exception("{} is not a valid projection method".format(method))
 
-    overwrite(graph_titles(proj_graph), "projection_graph.pickle")
+    # overwrite(graph_titles(proj_graph), "projection_graph.pickle")
     nx.write_gexf(proj_graph, "projection_graph.gexf")
 
     return proj_graph
@@ -198,7 +243,8 @@ def remake_projection_graph(org_graph, weights_dict):
     # Add Nodes
     i = 0
     for node in org_graph.nodes():
-        new_graph.add_node(node) # todo add title and other information here
+        print(node)
+        new_graph.add_node(node)  # todo add title and other information here
         i += 1
         print("Remaking Projection Graph... Adding Nodes {}/{}".format(i, node_num))
 
@@ -208,29 +254,28 @@ def remake_projection_graph(org_graph, weights_dict):
 
         # No self edges. (These are not in the weight dictionary)
         if edge[0] != edge[1]:
-
             print(edge[0] == edge[0])
             print(edge[1] == edge[1])
             print(edge == ('Thinking, Fast and Slow__11468377', "Liar's Poker__7865083"))
             print(edge)
             print(weights_dict[edge])
             print(weights_dict[('Thinking, Fast and Slow__11468377', "Liar's Poker__7865083")])
-            #new_graph.add_edge(*edge, weight=weights_dict[edge])
+            # new_graph.add_edge(*edge, weight=weights_dict[edge])
             break
         i += 1
         print("Remaking Projection Graph... Adding Edges {}/{}".format(i, edge_num))
 
-    # # Add Weights
-    # for key, value in weights_dict.items():
-    #     print(weights_dict[("Harry Potter and the Sorcerer's Stone__3", 'Morning Star__18966806')])
-    #
-    # i = 0
-    # for edge in org_graph.edges():
-    #     new_graph.add_edge(*edge)
-    #     i += 1
-    #     print("Remaking Projection Graph... Adding Edges {}/{}".format(i, edge_num))
-    #
-    # return new_graph
+        # # Add Weights
+        # for key, value in weights_dict.items():
+        #     print(weights_dict[("Harry Potter and the Sorcerer's Stone__3", 'Morning Star__18966806')])
+        #
+        # i = 0
+        # for edge in org_graph.edges():
+        #     new_graph.add_edge(*edge)
+        #     i += 1
+        #     print("Remaking Projection Graph... Adding Edges {}/{}".format(i, edge_num))
+        #
+        # return new_graph
 
 
 def graph_titles(G):
@@ -261,7 +306,6 @@ def clean_title(title):
     rest = str(title).split(sep, 1)[-1]
 
     return rest
-
 
 
 def invert_dictionary(clusterDict):
@@ -302,8 +346,9 @@ def make_partitions():
 
     with open('partition_dendogram.pickle', 'wb') as f:
         pickle.dump(partition_dendogram, f, protocol=2)
-    # with open('clusters.pickle', 'wb') as f:
-    #     pickle.dump(clusters, f, protocol=2)
+        # with open('clusters.pickle', 'wb') as f:
+        #     pickle.dump(clusters, f, protocol=2)
+
 
 # --------------------------------
 
@@ -339,8 +384,8 @@ def make_graphs():
     make_partitions()
     # find_genre_distribution()
 
+
 # ===================================================
 
 if __name__ == "__main__":
-
     make_graphs()
