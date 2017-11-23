@@ -58,14 +58,7 @@ def create_bipartite_graph(user_list, degree_threshold=0):
         i += 1
         print("Building Bipartite Graph: {}/{}".format(i, max_))
 
-
-    # Remove nodes with degree below the threshold.
-    # Most useful for removing nodes with no edges (these usually are users that rated everything 0)
-    if degree_threshold > 0:
-        print("Removing Nodes with degree less than or equal to {}".format(degree_threshold))
-        for node in b_graph.nodes():
-            if node.d
-            b_graph.remove_node(node)
+    b_graph = remove_nodes_below_threshold(b_graph, degree_threshold)
 
     # Save the graph
     print("Saving Bipartite Graph as bipartite_reader_network.pickle...")
@@ -76,11 +69,37 @@ def create_bipartite_graph(user_list, degree_threshold=0):
 
     return b_graph
 
-
-def create_and_save_bipartite():
+def remove_nodes_below_threshold(G, degree_threshold=1):
     """
-    This creates a the main book/reader network and saves it as a weighted dict.
-    The dict is of the form { (title1_gid, title2_gid) : weight), ... }
+    Remove the nodes with degree below the threshold.
+    :param G: A graph
+    :param degree_threshold: Remove nodes with degree less than this. Put at 0 to not run this
+    :return:
+    """
+
+    # Remove isolate case. This does work.
+    if degree_threshold == 1:
+        G.remove_nodes_from(nx.isolates(G))
+
+    # More general version. Does not work right now.
+    # if degree_threshold > 0:
+    #     print("Removing Nodes with degree less than or equal to {}".format(degree_threshold))
+    #     removal_list = []
+    #     for node in G.nodes():
+    #         if nx.degree(G, node) < degree_threshold:
+    #             removal_list.append(node)
+    #             print(node)
+    #
+    #     print(removal_list)
+    #     G.remove_nodes_from(removal_list)
+
+    return G
+
+def create_and_save_bipartite(degree_threshold=0):
+    """
+    This creates a the main book/reader network and saves it as a pickle and a gml file.
+    :param degree_threshold: Remove nodes with degree below or equal to this threshold.
+    Set to negative to not remove nodes.
     """
 
     print("Opening Goodreads book dict")
@@ -91,7 +110,7 @@ def create_and_save_bipartite():
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[10:15]  # Change this to change amount of data.
+    file_list = file_list[10:20]  # Change this to change amount of data.
 
     # Collect userlists and make a bipartite graph from them
     user_lists = []
@@ -99,7 +118,7 @@ def create_and_save_bipartite():
         user_list = read(path + file_name)
         user_lists += [u for u in user_list if len(u.userbooks) > 0]
 
-    bi_graph = create_bipartite_graph(user_lists, goodreads_book_dict, amazon_book_dict, remove_isolates=True)
+    bi_graph = create_bipartite_graph(user_lists, degree_threshold)
 
     return bi_graph
 
@@ -120,99 +139,65 @@ def project_graph(name='bipartite_reader_network.pickle', method="Count"):
     if not bipartite.is_bipartite(bi_graph):
         raise Exception("Projecting non-bipartite graphs is felony.")
 
-    #data_dict = make_data_dict(bi_graph)
-
-    # data_dict_to_projection(data_dict, func)
+    # Make top nodes (users) to project down onto bottom nodes (books)
     top_nodes = {n for n, d in bi_graph.nodes(data=True) if d['bipartite'] == 0}
     bottom_nodes = set(bi_graph) - top_nodes
-    print(bottom_nodes)
-    print("===============")
-    print(top_nodes)
 
+    # Various projection methods
     if method == "Count":  # Count the number of co-reads
         proj_graph = bipartite.generic_weighted_projected_graph(bi_graph, bottom_nodes)
-    if method == "Collaboration":  # Newman's collaboration metric
+    elif method == "Collaboration":  # Newman's collaboration metric
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
-    if method == "Overlap":  # Proportion of neighbors that are shared
+    elif method == "Overlap":  # Proportion of neighbors that are shared
         proj_graph = bipartite.overlap_weighted_projected_graph(bi_graph, bottom_nodes)
-    if method == "Average Weight":
+    elif method == "Average Weight":
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
-    if method == "Divergence":
+    elif method == "Divergence":
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
     else:
         raise Exception("{} is not a valid projection method".format(method))
 
-    overwrite(proj_graph, "projection_graph.pickle")
-
     # Save
-    print(bi_graph.number_of_edges())
+    print("Saving projection_graph_{}.pickle".format(method))
+    overwrite(proj_graph, "projection_graph_{}.pickle".format(method))
     print("Projection successful.")
     print("Saving projection_graph_{}.gml".format(method))
     nx.write_gml(proj_graph, "projection_graph_{}.gml".format(method))
+    print("Save successful.")
 
     return proj_graph
 
-# Don't need this function anymore
-def make_data_dict(bi_graph):
+
+
+def make_graphs():
     """
-    This makes a dictionary of the the form
-    {(book1_gid, book2_gid): [(b1_rating, b2_rating, owner_data), .... (b1_rating, b2_rating, owner_data)]}
-    We can use this dictionary to make custom weight calculations.
-    :param bi_graph: A bipartite graph.
-    :return:
+    This is the main function. It makes and saves the bipartite graph, the partitions, and the genre distribution.
+    :return: none
     """
 
-    data_dict = {}
+    create_and_save_bipartite(degree_threshold=1)
+    project_graph(method="Count")
+    # make_partitions()
+    # find_genre_distribution()
 
-    # Seperate the top (top) and bottom (book) nodes. The bottom nodes are the ones we project onto.
-    top_nodes = {n for n, d in bi_graph.nodes(data=True) if d['bipartite'] == 0}
-    bottom_nodes = set(bi_graph) - top_nodes
 
-    # Connect every neighbor with eachother
-    for user in top_nodes:
-        neighbors = bi_graph.neighbors(user)
-        computed_pairs = {}
-        for node in neighbors:
-            for node2 in neighbors:
+# ===================================================
 
-                print(user, node, node2)
-
-                # Decide on canonical order for nodes. The one with the smaller goodreads id comes first
-                if node['gid'] > node2['gid']:
-                    node, node2 = node2, node
-                pair_string = '{},{}'.format(node['gid'], node2['gid'])
-
-                # Check if node-pair is in dictionary
-                in_dict = pair_string in computed_pairs.keys()
-
-                # Skip self and already computed pairs
-                if node == node2 or in_dict:
-                    continue
-
-                # Add to dictionary if not in dict, otherwise update the list
-                new_tuple = [(bi_graph.edges[user, node]['weight'], bi_graph.edges[user, node2]['weight'], user.id)]
-                if not in_dict:
-                    data_dict[pair_string] = [new_tuple]
-                else:
-                    data_dict[pair_string] += [new_tuple]
-
-    return data_dict
-
-def make_partitions():
+def make_partitions(name='projection_graph.pickle'):
     """
     Find the communities in the network
+    :param name: name of graph pickle file
     :return:
     """
+
+    G = read(name)
 
     # # Filter out weak links
     # print("Filtering Links...")
     # weights_dict = {pair: weights_dict[pair] for pair in weights_dict if weights_dict[pair] > 5}
 
-    print("Projecting Graph")
-    proj_graph = project_graph()
-
     print("Generating Partition Dendogram")
-    partition_dendogram = community.generate_dendrogram(proj_graph)
+    partition_dendogram = community.generate_dendrogram(G)
 
     # print("Inverting dictionary")
     # clusters = invert_dictionary(partition_dendogram)
@@ -249,21 +234,9 @@ def find_genre_distribution():
     with open('genre_distribution.pickle', 'wb') as f:
         pickle.dump(genre_distribution, f, protocol=2)
 
-
-def make_graphs():
-    """
-    This is the main function. It makes and saves the bipartite graph, the partitions, and the genre distribution.
-    :return: none
-    """
-
-    G = create_and_save_bipartite()
-    project_graph(method="Overlap")
-    # make_partitions()
-    # find_genre_distribution()
-
-
-# ===================================================
+#==========================
 
 
 if __name__ == "__main__":
     make_graphs()
+    make_partitions(name="projection_graph_Count.pickle")
