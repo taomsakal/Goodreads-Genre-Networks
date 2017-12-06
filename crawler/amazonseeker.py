@@ -43,14 +43,15 @@ class AmazonSeeker:
                 print("Something Funny Happened")
             if isinstance(gbook, GoodreadsBook):
                 if hasattr(gbook, "gid"):  # If is actually a book.
-                    if gbook.gid not in self.amazon_bookshelf or gbook == "Skipped":
+                    if (gbook.gid not in self.amazon_bookshelf or gbook == "Skipped") or self.amazon_bookshelf[gbook.gid] == "Skipped":
+                        # Added in the part about the amazon book being skipped a long time later to retry skipped books
 
                         print_(gbook.title)
 
                         # Download amazon data
                         abook = self.download_amazon_book(gbook)
 
-                        # turn into amazon book object
+                        # turn into amazon book object if we could download it
                         if abook != "Skipped":
                             abook = self.make_amazon_book(abook)
 
@@ -59,6 +60,7 @@ class AmazonSeeker:
                     else:
                         print_(gbook.title)
                         print_("Already in bookshelf!\n")
+                        print(self.amazon_bookshelf[gbook.gid])
 
     def add_to_bookshelf(self, abook, gbook, skipped=False):
         """

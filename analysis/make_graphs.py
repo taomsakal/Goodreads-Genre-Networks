@@ -1,18 +1,19 @@
 import shelve
 import networkx as nx
-from networkx.algorithms import bipartite
-import sys
+
+
 from crawler.general import *
 import pickle
 import os
 import community
 from collections import Counter
 from networkx.algorithms import bipartite
+from analysis.genre_investigations import label_graph, dendogram_info
 
 sys.path.append('../')
 
 
-def create_bipartite_graph(user_list, degree_threshold=0):
+def create_bipartite_graph(user_list, degree_threshold=0, amazon_book_dict=None):
     """
     Given a list of user objects (each user with a list of book objects),
     this function will construct a bipartite graph of users and books.
@@ -34,15 +35,22 @@ def create_bipartite_graph(user_list, degree_threshold=0):
             for book in user.userbooks:
                 try:
                     if book.goodreads_id != "No gid":
-                        # abook = amazon_book_dict[str(book.goodreads_id)]  # not all books are in amazon
-                        # gbook = book_dict[str(book.goodreads_id)][1]
+                        try:
+                            abook_genres = str(amazon_book_dict[
+                                str(book.goodreads_id)].genres)  # not all books are in amazon
+                            abook_sales_rank = int(amazon_book_dict[str(book.goodreads_id)].sales_rank)
+                        except:
+                            abook_genres = ["Not in Amazon Database"]
+                            abook_sales_rank = -1  # Negative one sales rank if not in database
+                            # print("{} is not in our Amazon database.".format(book.title))
                         b_graph.add_node("book_{}".format(book.goodreads_id),
                                          bipartite=1,
                                          gid=book.goodreads_id,
                                          title=book.title,
-                                         # sales_rank=int(abook.sales_rank),
-                                         # genres=str(abook.genres),
-
+                                         sales_rank=abook_sales_rank,
+                                         # If above is int it breaks ~5% of books by removing all node data,
+                                         # so don't convert it.
+                                         genres=abook_genres
                                          )
                 except:
                     pass
@@ -60,6 +68,8 @@ def create_bipartite_graph(user_list, degree_threshold=0):
 
     b_graph = remove_nodes_below_threshold(b_graph, degree_threshold)
 
+    # Clean the Graph of broken bipartite values (Which get added for a ~5% of books when getting amazon data)
+
     # Save the graph
     print("Saving Bipartite Graph as bipartite_reader_network.pickle...")
     overwrite(b_graph, "bipartite_reader_network.pickle")
@@ -68,6 +78,7 @@ def create_bipartite_graph(user_list, degree_threshold=0):
     print("Save Successful!")
 
     return b_graph
+
 
 def remove_nodes_below_threshold(G, degree_threshold=1):
     """
@@ -95,6 +106,7 @@ def remove_nodes_below_threshold(G, degree_threshold=1):
 
     return G
 
+
 def create_and_save_bipartite(degree_threshold=0):
     """
     This creates a the main book/reader network and saves it as a pickle and a gml file.
@@ -110,7 +122,7 @@ def create_and_save_bipartite(degree_threshold=0):
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[10:20]  # Change this to change amount of data.
+    file_list = file_list[10:25]  # Change this to change amount of data.
 
     # Collect userlists and make a bipartite graph from them
     user_lists = []
@@ -118,7 +130,7 @@ def create_and_save_bipartite(degree_threshold=0):
         user_list = read(path + file_name)
         user_lists += [u for u in user_list if len(u.userbooks) > 0]
 
-    bi_graph = create_bipartite_graph(user_lists, degree_threshold)
+    bi_graph = create_bipartite_graph(user_lists, degree_threshold, amazon_book_dict)
 
     return bi_graph
 
@@ -160,16 +172,13 @@ def project_graph(name='bipartite_reader_network.pickle', method="Count"):
     # Save
     print("Saving projection_graph_{}.pickle".format(method))
     overwrite(proj_graph, "projection_graph_{}.pickle".format(method))
-    print("Projection successful.")
     print("Saving projection_graph_{}.gml".format(method))
     nx.write_gml(proj_graph, "projection_graph_{}.gml".format(method))
-    print("Save successful.")
 
     return proj_graph
 
 
-
-def make_graphs():
+def make_graphs(method="Count"):
     """
     This is the main function. It makes and saves the bipartite graph, the partitions, and the genre distribution.
     :return: none
@@ -210,33 +219,25 @@ def make_partitions(name='projection_graph.pickle'):
         # with open('clusters.pickle', 'wb') as f:
         #     pickle.dump(clusters, f, protocol=2)
 
+    return G, partition_dendogram
+
 
 # --------------------------------
 
-def find_genre_distribution():
-    sys.path.append("../")
 
-    # Open the data
-    s = shelve.open('../data/book_db/amazon_bookshelf.db')
-    with open('clusters.pickle', 'rb') as f:
-        clusters = pickle.load(f)
-
-    genre_clusters = {c: [] for c in clusters}
-    for c in clusters:
-        book_list = clusters[c]
-        for book_info in book_list:
-            goodreads_id = book_info.split("__")[1]  # string
-            if goodreads_id in s and s[goodreads_id] != "Skipped":
-                genre_clusters[c].extend(s[goodreads_id].genres)
-
-    genre_distribution = {c: Counter(genre_clusters[c]) for c in genre_clusters}
-
-    with open('genre_distribution.pickle', 'wb') as f:
-        pickle.dump(genre_distribution, f, protocol=2)
-
-#==========================
+# ==========================
 
 
 if __name__ == "__main__":
-    make_graphs()
-    make_partitions(name="projection_graph_Count.pickle")
+    name = "projection_graph_Count"
+
+    make_graphs(method="Overlap")
+    G, dendogram = make_partitions(name="{}.pickle".format(name))
+    dendogram_info(G, dendogram)
+    G = label_graph(G, dendogram, edge_filter_threshold=2)
+
+    # Save the graph
+    print("Saving Labeled Graph as {}_labeled.pickle...".format(name))
+    overwrite(G, "{}_labeled.pickle...".format(name))
+    print("Saving Labeled Graph as {}_labeled.gml...".format(name))
+    nx.write_gml(G, "{}_labeled.gml".format(name))
