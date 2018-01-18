@@ -9,8 +9,32 @@ from collections import Counter
 from networkx.algorithms import bipartite
 from analysis.genre_investigations import label_graph, dendogram_info
 
-sys.path.append('../')
 
+
+
+def build_graph(projection_type, start=0, end=0):
+    """
+    Builds the graph.
+    :param projection_type: "Count", "Overlap" or "Collaboration"
+    :return: None
+    """
+
+    sys.path.append('../')
+
+    name = "projection_graph_{}".format(projection_type)
+
+    make_graphs(method="Collaboration", start=start, end=end)
+    G, dendogram = make_partitions(name="{}.pickle".format(name))
+    dendogram_info(G, dendogram)
+    G = label_graph(G, dendogram, edge_filter_threshold=2)
+
+    # Save the graph
+    print("Saving Labeled Graph as {}_labeled.pickle...".format(name))
+    overwrite(G, "{}_labeled.pickle...".format(name))
+    print("Saving Labeled Graph as {}_labeled.gml...".format(name))
+    nx.write_gml(G, "{}_labeled.gml".format(name))
+
+    print("FINISHED BUILDING GRAPHS.")
 
 def create_bipartite_graph(user_list, degree_threshold=0, amazon_book_dict=None):
     """
@@ -104,9 +128,11 @@ def remove_nodes_below_threshold(G, degree_threshold=1):
     return G
 
 
-def create_and_save_bipartite(degree_threshold=0):
+def create_and_save_bipartite(degree_threshold=0, start=0, end=0):
     """
     This creates a the main book/reader network and saves it as a pickle and a gml file.
+    :param start: Where to start processing in the data file list
+    :param end:  Where to end processing in the data file list. If 0 then we process all the data.
     :param degree_threshold: Remove nodes with degree below or equal to this threshold.
     Set to negative to not remove nodes.
     """
@@ -119,7 +145,9 @@ def create_and_save_bipartite(degree_threshold=0):
     # Decide what data we process
     path = "../data/userlists/"
     file_list = os.listdir(path)
-    file_list = file_list[10:24]  # Change this to change amount of data.
+    if end != 0:
+        file_list = file_list[start:end]
+
 
     # Collect userlists and make a bipartite graph from them
     user_lists = []
@@ -159,9 +187,9 @@ def project_graph(name='bipartite_reader_network.pickle', method="Count"):
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
     elif method == "Overlap":  # Proportion of neighbors that are shared
         proj_graph = bipartite.overlap_weighted_projected_graph(bi_graph, bottom_nodes)
-    elif method == "Average Weight":
+    elif method == "Average Weight": # todo
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
-    elif method == "Divergence":
+    elif method == "Divergence": # todo
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
     else:
         raise Exception("{} is not a valid projection method".format(method))
@@ -175,13 +203,13 @@ def project_graph(name='bipartite_reader_network.pickle', method="Count"):
     return proj_graph
 
 
-def make_graphs(method="Count"):
+def make_graphs(method="Count", start=0, end=0):
     """
     This is the main function. It makes and saves the bipartite graph, the partitions, and the genre distribution.
     :return: none
     """
 
-    create_and_save_bipartite(degree_threshold=1)
+    create_and_save_bipartite(degree_threshold=1, start=start, end=end)
     project_graph(method="Count")
     # make_partitions()
     # find_genre_distribution()
@@ -213,16 +241,3 @@ def make_partitions(name='projection_graph.pickle'):
 # ==========================
 
 
-if __name__ == "__main__":
-    name = "projection_graph_Count"
-
-    make_graphs(method="Overlap")
-    G, dendogram = make_partitions(name="{}.pickle".format(name))
-    dendogram_info(G, dendogram)
-    G = label_graph(G, dendogram, edge_filter_threshold=2)
-
-    # Save the graph
-    print("Saving Labeled Graph as {}_labeled.pickle...".format(name))
-    overwrite(G, "{}_labeled.pickle...".format(name))
-    print("Saving Labeled Graph as {}_labeled.gml...".format(name))
-    nx.write_gml(G, "{}_labeled.gml".format(name))

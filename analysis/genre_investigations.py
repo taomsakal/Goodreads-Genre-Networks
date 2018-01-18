@@ -22,7 +22,45 @@ import collections
 # Create global data sources
 # -------------------------------------
 
-sys.path.append("../")
+
+def build_projection_and_distribution(projection_type):
+    """
+    Builds the projection data and finds the distributions.
+    :param projection_type: "Count", "Overlap" or "Collaboration"
+    :return:
+    """
+
+    sys.path.append("../")
+
+    PARTITION_TYPE = projection_type
+
+    # The amazon bookshelf
+    s = shelve.open('../data/book_db/amazon_bookshelf.db')
+
+    # partitions is the partition dictionary we get from community.best_partition
+    with open('partition_dendogram.pickle', 'rb') as f:
+        dendogram = pickle.load(f)
+
+    # This is the projected graph
+    with open('projection_graph_{}_labeled.pickle'.format(PARTITION_TYPE), 'rb') as f:
+        G = pickle.load(f)
+
+    # Find and save the distribution.
+    dist = find_distribution(G)
+    with open('partition_dendogram.pickle', 'wb') as f:
+        pickle.dump("distribution_{}".format(PARTITION_TYPE), f, protocol=2)
+
+
+    # for i in range(0, len(dist[1])):
+    #     try:
+    #         data = dist[1][i]
+    #         make_plot(data, cutoff=5)
+    #         plt.savefig('Figures/fig_{}.png'.format(i), bbox_inches='tight')
+    #     except:
+    #         pass
+
+
+
 
 
 def make_lookup_dict(G):
@@ -244,35 +282,6 @@ def make_plot(dict, cutoff=None):
     plot_tuple_list(tlist, cutoff=cutoff)
 
 
-
-if __name__ == "__main__":
-
-    PARTITION_TYPE = "Count"
-
-    # The amazon bookshelf
-    s = shelve.open('../data/book_db/amazon_bookshelf.db')
-
-    # partitions is the partition dictionary we get from community.best_partition
-    with open('partition_dendogram.pickle', 'rb') as f:
-        dendogram = pickle.load(f)
-
-    # This is the projected graph
-    with open('projection_graph_{}_labeled.pickle'.format(PARTITION_TYPE), 'rb') as f:
-        G = pickle.load(f)
-
-    # Find and save the distribution.
-    dist = find_distribution(G)
-    with open('partition_dendogram.pickle', 'wb') as f:
-        pickle.dump("distribution_{}".format(PARTITION_TYPE), f, protocol=2)
-
-
-    for i in range(0, len(dist[1])):
-        try:
-            data = dist[1][i]
-            make_plot(data, cutoff=5)
-            plt.savefig('Figures/fig_{}.png'.format(i), bbox_inches='tight')
-        except:
-            pass
 
 
 
