@@ -1,3 +1,44 @@
+"""
+This makes the graphs and runs the genre analysis.
+Comment out the lines we do not need.
+"""
+
+from analysis.genre_investigations import build_projection_and_distribution
+from analysis.make_graphs import build_graph, project_graph, create_and_save_bipartite
+import time
+
+#First we will only make the bipartite graph, leaving in singletons and everything.
+text = input("Shall we make the bipartite graphs? (no/yes)")
+if text == 'yes':
+    text = input("For all nodes, just a small test graph, or a custom amount? (all/test/custom)")
+    if text == 'all':
+        create_and_save_bipartite()
+    elif text == 'test':
+        create_and_save_bipartite(start=0, end=1, save_name="test_bipartite")
+    elif text == 'custom':
+        start = input("Starting file number (integer between 0 and 371)")
+        end = input("Ending file number (integer between 1 and 371)")
+        start = int(start)
+        end = int(end)
+        name = input("What will the <name> of the file be?")
+        create_and_save_bipartite(start=start, end=end, save_name=name)
+
+# Next load the biportite graph and project it.
+text = input("Project all nodes, test graph, or custom graph? (all/test/custom)")
+proj_type = 'Count'
+if text == 'all':
+    project_graph(method=proj_type)
+elif text == 'test':
+    project_graph(method=proj_type, bipartite_graph_name="test_bipartite.pickle")
+elif text == 'custom':
+    name = input("Name of the bipartite graph? (<name>.pickle)")
+    project_graph(method=proj_type, bipartite_graph_name=f"{name}.pickle")
+
+# project_graph(method=proj_type, bipartite_graph_name="test_bipartite.pickle")
+# Next we must find the genre partitions within the graph
+# make_partitions()
+
+#===============================
 import shelve
 import networkx as nx
 
@@ -37,8 +78,7 @@ def build_graph(projection_type, bipartite_only=True, start=0, end=0):
 
     print("FINISHED BUILDING GRAPHS.")
 
-
-def create_bipartite_graph(user_list, degree_threshold=1, amazon_book_dict=None, save_name="nosavename"):
+def create_bipartite_graph(user_list, degree_threshold=0, amazon_book_dict=None, save_name="bipartite_reader_network"):
     """
     Given a list of user objects (each user with a list of book objects),
     this function will construct a bipartite graph of users and books.
@@ -116,7 +156,7 @@ def remove_nodes_below_threshold(G, degree_threshold=1):
     # Remove isolate case. This does work.
     if degree_threshold == 1:
         try:
-            G.remove_nodes_from(list(nx.isolates(G)))
+            G.remove_nodes_from(nx.isolates(G))
         except:
             print("Could not remove isolated nodes!")
     # More general version. Does not work right now.
@@ -134,7 +174,7 @@ def remove_nodes_below_threshold(G, degree_threshold=1):
     return G
 
 
-def create_and_save_bipartite(name, degree_threshold=0, start=0, end=0):
+def create_and_save_bipartite(degree_threshold=0, start=0, end=0, save_name="bipartite_reader_network"):
     """
     This creates a the main book/reader network and saves it as a pickle and a gml file.
     :param start: Where to start processing in the data file list
@@ -143,28 +183,30 @@ def create_and_save_bipartite(name, degree_threshold=0, start=0, end=0):
     Set to negative to not remove nodes.
     """
 
-    # Decide what data we process
-    path = f"{name}.pickle"
-    print("Reading data...")
-    user_list = read(path)
-
-    print("Example of elements in the userlist")
-    print(user_list[0:10])
-    print([(type(user), user.id, user.userbooks) for user in user_list[:10]])
-
-
-    # start = int(input(f"The userlist is {len(user_list)} elements long. What element should we start at?"))
-    # end = int(input("What element should we end at?"))
-
     print("Opening Goodreads book dict")
     goodreads_book_dict = shelve.open("../data/book_db/goodreads_bookshelf.db", flag='r')
     print("Opening Amazon book dict")
     amazon_book_dict = shelve.open("../data/book_db/amazon_bookshelf.db", flag='r')
 
-    # print("Cutting userlist")
-    # del user_list[:start]
+    # Decide what data we process
+    path = "../data/userlists/"
+    file_list = os.listdir(path)
+    if end != 0:
+        file_list = file_list[start:end]
 
-    bi_graph = create_bipartite_graph(user_list, degree_threshold, amazon_book_dict, save_name=f"{name}_bi")
+
+    # Collect userlists and make a bipartite graph from them
+    print("Collecting Userlists")
+    l = len(file_list)
+    i = 0
+    user_lists = []
+    for file_name in file_list:
+        user_list = read(path + file_name)
+        user_lists += [u for u in user_list if len(u.userbooks) > 0]
+        print(f"Userlist {i}/{l} collected.")
+        i += 1
+
+    bi_graph = create_bipartite_graph(user_lists, degree_threshold, amazon_book_dict, save_name=save_name)
 
     return bi_graph
 
@@ -200,9 +242,9 @@ def project_graph(bipartite_graph_name='bipartite_reader_network.pickle', method
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
     elif method == "Overlap":  # Proportion of neighbors that are shared
         proj_graph = bipartite.overlap_weighted_projected_graph(bi_graph, bottom_nodes)
-    elif method == "Weighted":
+    elif method == "Average Weight": # todo
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
-    elif method == "Divergence":  # todo
+    elif method == "Divergence": # todo
         proj_graph = bipartite.collaboration_weighted_projected_graph(bi_graph, bottom_nodes)
     else:
         raise Exception("{} is not a valid projection method".format(method))
@@ -210,9 +252,10 @@ def project_graph(bipartite_graph_name='bipartite_reader_network.pickle', method
     print("Projection succesful!")
 
     # Save
-    print("Saving {}_{}_projection.pickle and .gml".format(bipartite_graph_name, method))
-    overwrite(proj_graph, "{}_{}_projection.pickle".format(bipartite_graph_name, method))
-    nx.write_gml(proj_graph, "{}_{}_projection.gml".format(bipartite_graph_name, method))
+    print("Saving projection_graph_{}.pickle".format(method))
+    overwrite(proj_graph, "projection_graph_{}.pickle".format(method))
+    print("Saving projection_graph_{}.gml".format(method))
+    nx.write_gml(proj_graph, "projection_graph_{}.gml".format(method))
 
     return proj_graph
 
@@ -251,7 +294,10 @@ def make_partitions(name='projection_graph.pickle'):
 
     return G, partition_dendogram
 
+
 # --------------------------------
 
 
 # ==========================
+
+

@@ -3,4 +3,5 @@
 *.bak
 *.pickle
 *.gexf
+*.gml
 data/

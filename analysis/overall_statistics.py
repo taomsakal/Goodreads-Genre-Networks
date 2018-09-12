@@ -8,9 +8,15 @@ import pandas
 from goodreads.book import GoodreadsBook
 
 
+USERLIST_PATH = "og_userlist.pickle"
+SAVE_PATH = "clean_stats"
+
 def genre_statistics(show_progress=True, save_results=True):
     """
+
     :return: A dataframe with the overall number of each genre.
+
+    :warning: not effected by cleaned data
     """
 
     d = {}
@@ -35,7 +41,7 @@ def genre_statistics(show_progress=True, save_results=True):
     # Make data into a dataframe and save it.
     genre_data = pandas.DataFrame(list(d.items()), columns=['Genre', 'Number of Books'])
     if save_results:
-        genre_data.to_csv("results.smallscale/genre_distribution.csv")
+        genre_data.to_csv(f"{SAVE_PATH}/genre_distribution.csv")
 
     return genre_data
 
@@ -43,6 +49,8 @@ def genre_statistics(show_progress=True, save_results=True):
 def language_stats(show_progress=True, save_results=True):
     """
     :return: A datafram with the overall number of each language.
+
+    :warning: This uses the amazon bookshelf, which has information for all data, not just the cleaned data.
     """
 
     d = {}
@@ -67,39 +75,58 @@ def language_stats(show_progress=True, save_results=True):
     # Make data into a dataframe and save it.
     genre_data = pandas.DataFrame(list(d.items()), columns=['Language', 'Number of Books'])
     if save_results:
-        genre_data.to_csv("results.smallscale/language_distribution.csv")
+        genre_data.to_csv(f"{SAVE_PATH}/language_distribution.csv")
 
     return genre_data
 
 
-def user_book_num(show_progress=True, save_results=True):
+def user_by_user(show_progress=True, save_results=True):
     """
-    :return: A dataframe with number of books and number of users with that number of books.
+    :return: A dataframe with each user and the number of books they've read
     """
 
     d = {}
-    l = len(os.listdir("../data/userlists"))
     i = 0
 
-    for filename in os.listdir("../data/userlists"):
+    userlist = read(USERLIST_PATH)
+    l = len(userlist)
+    for user in userlist:
+        i += 1
+        print_progress("Calculating book number distribution.", i, l, 10)
+        book_num = str(len(user.userbooks))
+        d[str(user.id)] = book_num
 
-        if show_progress:
-            i += 1
-            print_progress("Calculating book number distribution.", i, l, 1)
+    # Make data into a dataframe and save it.
+    genre_data = pandas.DataFrame(list(d.items()), columns=['User Number', 'Number of Books'])
+    if save_results:
+        genre_data.to_csv(f"{SAVE_PATH}/user_by_user.csv")
 
-        userlist = read("../data/userlists/" + filename)
-        for user in userlist:
-            if user.profile_type == "normal":
-                book_num = str(len(user.userbooks))
-                if book_num in d:
-                    d[book_num] += 1
-                else:
-                    d[book_num] = 1
+    return genre_data
+
+def user_book_num(show_progress=True, save_results=True):
+    """
+    :return: A dataframe with number of books and number of users with that number of books.
+    :warning: This looks at the reported number of books, not the number of books in the userlist.
+    """
+
+    d = {}
+    i = 0
+
+    userlist = read(USERLIST_PATH)
+    l = len(userlist)
+    for user in userlist:
+        i += 1
+        print_progress("Calculating book number distribution.", i, l, 10)
+        book_num = user.number_books
+        if book_num in d:
+            d[book_num] += 1
+        else:
+            d[book_num] = 1
 
     # Make data into a dataframe and save it.
     genre_data = pandas.DataFrame(list(d.items()), columns=['Book Number', 'Number of Users'])
     if save_results:
-        genre_data.to_csv("results.smallscale/user_book_number_distribution.csv")
+        genre_data.to_csv(f"{SAVE_PATH}/user_book_number_distribution.csv")
 
     return genre_data
 
@@ -110,29 +137,25 @@ def book_read_number(show_progress=True, save_results=True):
     """
 
     # Init counter
-    l = len(os.listdir("../data/userlists"))
     i = 0
     d = {}
 
-    for filename in os.listdir("../data/userlists"):
-
-        if show_progress:
-            i += 1
-            print_progress("Calculating book reader number distribution.", i, l, 1)
-
-        userlist = read("../data/userlists/" + filename)
-        for user in userlist:
-            if user.profile_type == "normal":
-                for book in user.userbooks:
-                    if str(book.goodreads_id) in d:
-                        d[str(book.goodreads_id)] += 1
-                    else:
-                        d[str(book.goodreads_id)] = 1
+    userlist = read(USERLIST_PATH)
+    l = len(userlist)
+    for user in userlist:
+        i += 1
+        print_progress("Calculating book reader number distribution.", i, l, 1)
+        if user.profile_type == "normal":
+            for book in user.userbooks:
+                if str(book.goodreads_id) in d:
+                    d[str(book.goodreads_id)] += 1
+                else:
+                    d[str(book.goodreads_id)] = 1
 
     # Make data into a dataframe and save it.
     data = pandas.DataFrame(list(d.items()), columns=['Book ID', 'Number Readers'])
     if save_results:
-        data.to_csv("results.smallscale/book_reader_number_distribution.csv")
+        data.to_csv(f"{SAVE_PATH}/book_reader_number_distribution.csv")
 
     return data
 
@@ -145,41 +168,41 @@ def user_book_dataframe(show_progress=True, save_results=True):
     goodreads_books = shelve.open("../data/book_db/goodreads_bookshelf.db", flag='r')
     data_list = []
 
+    userlist = read(USERLIST_PATH)
+
     # Init counter
-    l = len(os.listdir("../data/userlists"))
+    l = len(userlist)
     i = 0
 
-    for filename in os.listdir("../data/userlists"):
 
-        if show_progress:
-            i += 1
-            print_progress("Calculating book reader number distribution.", i, l, 1)
+    if show_progress:
+        i += 1
+        print_progress("Calculating book reader number distribution.", i, l, 1)
 
-        userlist = read("../data/userlists/" + filename)
-        for user in userlist:
-            if user.profile_type == "normal":
-                for book in user.userbooks:
-                    d = {}
-                    d["Goodreads ID"] = book.goodreads_id
-                    d["Title"] = goodreads_books[str(book.goodreads_id)]
-                    # d[] = book.goodreads_id = "No gid"
-                    #
-                    # d[] = book.rating = "No rating"
-                    # d[] = book.readcount = 0
-                    #
-                    # d[] = book.date_added = "No added date"
-                    # d[] = book.date_purchased = "No purchase date"
-                    # d[] = book.owned = "No owned info"
-                    # d[] = book.purchase_location = None
-                    # d[] = book.condition = None
-                    # d[] = book.format = None
-                    # d[] = book.review = None
-                    # d[] = book.recomender = None
-                    # d[] = book.notes = None
-                    # d[] = book.comments = None
-                    # d[] = book.votes = None
-                    # d[] = book.date_pub_edition = None
-                    # d[] = book.link = None
+    for user in userlist:
+        if user.profile_type == "normal":
+            for book in user.userbooks:
+                d = {}
+                d["Goodreads ID"] = book.goodreads_id
+                d["Title"] = goodreads_books[str(book.goodreads_id)]
+                # d[] = book.goodreads_id = "No gid"
+                #
+                # d[] = book.rating = "No rating"
+                # d[] = book.readcount = 0
+                #
+                # d[] = book.date_added = "No added date"
+                # d[] = book.date_purchased = "No purchase date"
+                # d[] = book.owned = "No owned info"
+                # d[] = book.purchase_location = None
+                # d[] = book.condition = None
+                # d[] = book.format = None
+                # d[] = book.review = None
+                # d[] = book.recomender = None
+                # d[] = book.notes = None
+                # d[] = book.comments = None
+                # d[] = book.votes = None
+                # d[] = book.date_pub_edition = None
+                # d[] = book.link = None
 
     # Make data into a dataframe and save it.
     data = pandas.DataFrame(list(d.items()), columns=['Book ID', 'Number Readers'])
@@ -259,26 +282,23 @@ def user_profile_statistics():
     no_type_users = 0
     users_with_no_id = 0
 
-    for filename in os.listdir("../data/userlists"):
+    userlist = read(USERLIST_PATH)
 
-        print("Processing {}".format(filename))
-        userlist = read("../data/userlists/" + filename)
+    for user in userlist:
+        total_users += 1
+        if user.profile_type == "normal":
+            normal_users += 1
+        elif user.profile_type == "private":
+            private_users += 1
+        elif user.profile_type == "empty":
+            empty_users += 1
+        elif user.profile_type == "error":
+            error_users += 1
+        elif user.profile_type == "no type":
+            no_type_users += 1
 
-        for user in userlist:
-            total_users += 1
-            if user.profile_type == "normal":
-                normal_users += 1
-            elif user.profile_type == "private":
-                private_users += 1
-            elif user.profile_type == "empty":
-                empty_users += 1
-            elif user.profile_type == "error":
-                error_users += 1
-            elif user.profile_type == "no type":
-                no_type_users += 1
-
-            if user.id == 0:
-                users_with_no_id += 1
+        if user.id == 0:
+            users_with_no_id += 1
 
     print("Total Users: {}".format(total_users))
     print("Normal Users: {}".format(normal_users))
@@ -290,8 +310,9 @@ def user_profile_statistics():
 
 
 if __name__ == "__main__":
-    user_profile_statistics()
+    # user_profile_statistics()
     # genre_statistics()
     # language_stats()
-    # user_book_num()
+    user_book_num()
     # book_read_number()
+    #user_by_user()

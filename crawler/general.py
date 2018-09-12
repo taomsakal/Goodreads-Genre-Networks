@@ -44,7 +44,7 @@ def overwrite(data, filename):
     """
 
     file = open(filename, "wb")
-    pickle.dump(data, file)
+    pickle.dump(data, file, protocol=2)
     file.close()
 
 
