@@ -5,3 +5,4 @@
 *.gexf
 *.gml
 data/
+venv/
